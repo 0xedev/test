@@ -1,41 +1,42 @@
 import { tokenAddress } from "@/constants/contract";
 import { NextResponse } from "next/server";
 
-const {
-  BACKEND_WALLET_ADDRESS,
-  ENGINE_URL,
-  THIRDWEB_SECRET_KEY,
-} = process.env;
+export const dynamic = "force-dynamic";
+
+const { BACKEND_WALLET_ADDRESS, ENGINE_URL, THIRDWEB_SECRET_KEY } = process.env;
 
 async function checkTransactionStatus(queueId: string): Promise<boolean> {
-  const statusResponse = await fetch(`${ENGINE_URL}/transaction/status/${queueId}`, {
-    headers: {
-      Authorization: `Bearer ${THIRDWEB_SECRET_KEY}`,
-    },
-  });
+  const statusResponse = await fetch(
+    `${ENGINE_URL}/transaction/status/${queueId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${THIRDWEB_SECRET_KEY}`,
+      },
+    }
+  );
 
   if (statusResponse.ok) {
     const statusData = await statusResponse.json();
-    return statusData.result.status === 'mined';
+    return statusData.result.status === "mined";
   }
   return false;
 }
 
-async function pollTransactionStatus(queueId: string, maxAttempts = 15, interval = 3000): Promise<boolean> {
+async function pollTransactionStatus(
+  queueId: string,
+  maxAttempts = 15,
+  interval = 3000
+): Promise<boolean> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const isMined = await checkTransactionStatus(queueId);
     if (isMined) return true;
-    await new Promise(resolve => setTimeout(resolve, interval));
+    await new Promise((resolve) => setTimeout(resolve, interval));
   }
   return false;
 }
 
 export async function POST(request: Request) {
-  if (
-    !BACKEND_WALLET_ADDRESS ||
-    !ENGINE_URL ||
-    !THIRDWEB_SECRET_KEY
-  ) {
+  if (!BACKEND_WALLET_ADDRESS || !ENGINE_URL || !THIRDWEB_SECRET_KEY) {
     throw 'Server misconfigured. Did you forget to add a ".env.local" file?';
   }
 
@@ -51,8 +52,8 @@ export async function POST(request: Request) {
         "x-backend-wallet-address": BACKEND_WALLET_ADDRESS,
       },
       body: JSON.stringify({
-        "toAddress": address as string,
-        "amount": "100"
+        toAddress: address as string,
+        amount: "100",
       }),
     }
   );
@@ -64,13 +65,25 @@ export async function POST(request: Request) {
     const isMined = await pollTransactionStatus(queueId);
 
     if (isMined) {
-      return NextResponse.json({ message: "Transaction mined successfully!", queueId });
+      return NextResponse.json({
+        message: "Transaction mined successfully!",
+        queueId,
+      });
     } else {
-      return NextResponse.json({ message: "Transaction not mined within the timeout period.", queueId }, { status: 408 });
+      return NextResponse.json(
+        {
+          message: "Transaction not mined within the timeout period.",
+          queueId,
+        },
+        { status: 408 }
+      );
     }
   } else {
     const errorText = await resp.text();
     console.error("[DEBUG] not ok", errorText);
-    return NextResponse.json({ message: "Failed to initiate transaction", error: errorText }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to initiate transaction", error: errorText },
+      { status: 500 }
+    );
   }
 }
