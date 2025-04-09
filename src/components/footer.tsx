@@ -14,29 +14,11 @@ export function Footer() {
               rel="noreferrer"
               className="font-medium underline underline-offset-4"
             >
-              your-name
+              oxdev.base.eth
             </Link>
-            {/* . The source code is available on{" "}
-            <Link
-              href="https://github.com/yourusername/your-repo"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium underline underline-offset-4"
-            >
-              GitHub
-            </Link> */}
             .
           </p>
         </div>
-        {/* <div className="flex items-center gap-4">
-          <Link
-            href="https://github.com/yourusername/your-repo"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Github className="h-5 w-5 text-muted-foreground hover:text-foreground" />
-          </Link>
-        </div> */}
       </div>
     </footer>
   );

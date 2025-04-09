@@ -1,7 +1,7 @@
 import { ConnectButton, lightTheme, useActiveAccount } from "thirdweb/react";
 import { client } from "@/app/client";
 import { baseSepolia } from "thirdweb/chains";
-import { inAppWallet } from "thirdweb/wallets";
+import { inAppWallet, createWallet } from "thirdweb/wallets";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -11,6 +11,20 @@ export function Navbar() {
   const account = useActiveAccount();
   const [isClaimLoading, setIsClaimLoading] = useState(false);
   const { toast } = useToast();
+
+  // Define wallet configurations
+  const wallets = [
+    inAppWallet({
+      auth: {
+        options: ["google", "farcaster", "passkey"],
+      },
+    }),
+    createWallet("io.metamask"),
+    createWallet("com.coinbase.wallet"),
+    createWallet("me.rainbow"),
+    createWallet("io.rabby"),
+    createWallet("io.zerion.wallet"),
+  ];
 
   const handleClaimTokens = async () => {
     setIsClaimLoading(true);
@@ -66,6 +80,10 @@ export function Navbar() {
           client={client}
           theme={lightTheme()}
           chain={baseSepolia}
+          wallets={wallets}
+          connectModal={{
+            size: "compact",
+          }}
           connectButton={{
             style: {
               fontSize: "0.75rem !important",
@@ -78,7 +96,6 @@ export function Navbar() {
               [baseSepolia.id]: "0x4D9604603527322F44c318FB984ED9b5A9Ce9f71",
             },
           }}
-          wallets={[inAppWallet()]}
           accountAbstraction={{
             chain: baseSepolia,
             sponsorGas: true,
