@@ -27,7 +27,7 @@ export function EnhancedPredictionMarketDashboard() {
         <Navbar />
         <div className="mb-4">
           <img
-            src="/Users/user/simple-prediction-market-youtube/public/banner2.avif"
+            src="banner2.avif"
             alt="Buster Banner"
             className="w-full h-auto rounded-lg"
           />
