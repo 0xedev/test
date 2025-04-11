@@ -41,7 +41,9 @@ const contract = getContract({
     id: baseSepolia.id,
     name: baseSepolia.name,
     nativeCurrency: baseSepolia.nativeCurrency,
-    rpc: "https://sepolia.base.org",
+    rpc:
+      process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL ||
+      baseSepolia.rpcUrls.default.http[0],
     blockExplorers: [
       {
         name: "Basescan",
