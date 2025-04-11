@@ -6,43 +6,26 @@ import {
   useSendTransaction,
 } from "thirdweb/react";
 import { client } from "@/app/client";
-import { baseSepolia } from "thirdweb/chains";
+import { baseSepolia } from "wagmi/chains";
 import { inAppWallet, createWallet } from "thirdweb/wallets";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { getContract, prepareContractCall } from "thirdweb";
-import { sdk } from "@farcaster/frame-sdk"; // Farcaster SDK
-import { WagmiProvider, createConfig, http } from "wagmi";
-import { defineChain } from "viem";
+import { sdk } from "@farcaster/frame-sdk";
+import { WagmiConfig, createConfig, http } from "wagmi";
 import { farcasterFrame } from "@farcaster/frame-wagmi-connector";
 
-const wagmiBaseSepolia = defineChain({
-  id: baseSepolia.id,
-  name: baseSepolia.name ?? "Base Sepolia",
-  network: baseSepolia.name ?? "base-sepolia",
-  nativeCurrency: {
-    name: baseSepolia.nativeCurrency?.name ?? "ETH",
-    symbol: baseSepolia.nativeCurrency?.symbol ?? "ETH",
-    decimals: baseSepolia.nativeCurrency?.decimals ?? 18,
-  },
-  rpcUrls: {
-    default: { http: [baseSepolia.rpc] },
-    public: { http: [baseSepolia.rpc] },
-  },
-});
-
-// Wagmi config for Farcaster wallet
 const wagmiConfig = createConfig({
-  chains: [wagmiBaseSepolia],
-  transports: { [wagmiBaseSepolia.id]: http() },
+  chains: [baseSepolia],
+  transports: { [baseSepolia.id]: http() },
   connectors: [farcasterFrame()],
 });
 
 const wallets = [
   inAppWallet({
     auth: {
-      options: ["google", "farcaster", "passkey"], // Add Farcaster option
+      options: ["google", "farcaster", "passkey"],
     },
   }),
   createWallet("io.metamask"),
@@ -54,7 +37,19 @@ const wallets = [
 
 const contract = getContract({
   client,
-  chain: baseSepolia,
+  chain: {
+    id: baseSepolia.id,
+    name: baseSepolia.name,
+    nativeCurrency: baseSepolia.nativeCurrency,
+    rpc: "https://sepolia.base.org",
+    blockExplorers: [
+      {
+        name: "Basescan",
+        url: "https://sepolia.basescan.org",
+        apiUrl: "https://api-sepolia.basescan.org/api",
+      },
+    ],
+  },
   address: "0xE71Cb4FB5a9EEc3CeDdAC3D08108991Ba74258F3",
 });
 
@@ -65,16 +60,24 @@ export function Navbar() {
   const { mutate: sendTransaction, isPending } = useSendTransaction();
 
   useEffect(() => {
-    // Initialize Farcaster SDK
-    sdk.actions.ready(); // Signal app readiness
+    if (!account) return; // Wait for wallet connection
+
+    sdk.actions.ready();
     sdk.actions
       .signIn({ nonce: "forecast-" + Date.now() })
       .then((result) => {
         console.log("SIWF Result:", result);
-        // Optionally verify on server via API route
       })
-      .catch((err) => console.error("SIWF Error:", err));
-  }, []);
+      .catch((err) => {
+        console.error("SIWF Error:", err);
+        toast({
+          title: "Farcaster Sign-In Failed",
+          description:
+            "Could not sign in with Farcaster. Check console for details.",
+          variant: "destructive",
+        });
+      });
+  }, [account]); // Re-run when account changes
 
   const handleClaimTokens = async () => {
     if (!account) {
@@ -95,16 +98,10 @@ export function Navbar() {
       });
 
       await sendTransaction(transaction, {
-        onSuccess: (data) => {
+        onSuccess: () => {
           toast({
             title: "Tokens Claimed!",
             description: "You've claimed 1000 BET tokens.",
-            duration: 5000,
-          });
-          // Notify Farcaster webhook (optional)
-          fetch("/api/webhook", {
-            method: "POST",
-            body: JSON.stringify({ address: account.address, amount: 1000 }),
           });
         },
         onError: (error) => {
@@ -130,7 +127,7 @@ export function Navbar() {
   };
 
   return (
-    <WagmiProvider config={wagmiConfig}>
+    <WagmiConfig config={wagmiConfig}>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">ForeCast</h1>
         <div className="items-center flex gap-2">
@@ -167,6 +164,6 @@ export function Navbar() {
           />
         </div>
       </div>
-    </WagmiProvider>
+    </WagmiConfig>
   );
 }

@@ -18,14 +18,28 @@ export function EnhancedPredictionMarketDashboard() {
     });
 
   const [leaderboard, setLeaderboard] = useState<
-    { username: string; fid: number; winnings: number }[]
+    Array<{
+      username: string;
+      fid: number;
+      winnings: number;
+    }>
   >([]);
+  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(true);
 
   useEffect(() => {
+    setIsLoadingLeaderboard(true);
     fetch("/api/leaderboard")
       .then((res) => res.json())
-      .then(setLeaderboard)
-      .catch((err) => console.error("Leaderboard fetch error:", err));
+      .then((data) => {
+        setLeaderboard(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.error("Leaderboard fetch error:", err);
+        setLeaderboard([]);
+      })
+      .finally(() => {
+        setIsLoadingLeaderboard(false);
+      });
   }, []);
 
   const skeletonCards = Array.from({ length: 6 }, (_, i) => (
@@ -45,16 +59,28 @@ export function EnhancedPredictionMarketDashboard() {
         </div>
         <div className="mb-6">
           <h2 className="text-xl font-bold mb-2">Top Predictors</h2>
-          <ul className="space-y-2">
-            {leaderboard.map((entry, idx) => (
-              <li key={entry.fid} className="flex justify-between text-sm">
-                <span>
-                  {idx + 1}. {entry.username} (FID: {entry.fid})
-                </span>
-                <span>{entry.winnings} BET</span>
-              </li>
-            ))}
-          </ul>
+          {isLoadingLeaderboard ? (
+            <div className="animate-pulse space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-6 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+          ) : leaderboard.length > 0 ? (
+            <ul className="space-y-2">
+              {leaderboard.map((entry, idx) => (
+                <li key={entry.fid} className="flex justify-between text-sm">
+                  <span>
+                    {idx + 1}. {entry.username} (FID: {entry.fid})
+                  </span>
+                  <span>{entry.winnings} BET</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-gray-500">
+              No leaderboard data available
+            </p>
+          )}
         </div>
         <Tabs defaultValue="active" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
