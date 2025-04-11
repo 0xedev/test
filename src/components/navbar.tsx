@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { getContract, prepareContractCall } from "thirdweb";
-import { TransactionReceipt } from "thirdweb/transaction";
+// import { TransactionReceipt } from "thirdweb/transaction";
 
 export function Navbar() {
   const account = useActiveAccount();
