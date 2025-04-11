@@ -3,7 +3,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "ForeCast - Prediction Market",
-  description: "Claim tokens and predict outcomes!",
+  description: "Forecast outcomes!",
   openGraph: {
     title: "ForeCast",
     images: ["/banner2.avif"],
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
       version: "next",
       imageUrl: "https://buster-mkt.vercel.app/Banner.jpg",
       button: {
-        title: "Predict",
+        title: "ForeCast now!",
         action: {
           type: "launch_frame",
           url: "https://buster-mkt.vercel.app",

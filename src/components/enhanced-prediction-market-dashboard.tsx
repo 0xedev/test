@@ -18,7 +18,7 @@ export function EnhancedPredictionMarketDashboard() {
     });
 
   const [leaderboard, setLeaderboard] = useState<
-    { username: string; fid: number; tokensClaimed: number }[]
+    { username: string; fid: number; winnings: number }[]
   >([]);
 
   useEffect(() => {
@@ -44,14 +44,14 @@ export function EnhancedPredictionMarketDashboard() {
           />
         </div>
         <div className="mb-6">
-          <h2 className="text-xl font-bold mb-2">Leaderboard</h2>
+          <h2 className="text-xl font-bold mb-2">Top Predictors</h2>
           <ul className="space-y-2">
             {leaderboard.map((entry, idx) => (
               <li key={entry.fid} className="flex justify-between text-sm">
                 <span>
                   {idx + 1}. {entry.username} (FID: {entry.fid})
                 </span>
-                <span>{entry.tokensClaimed} BET</span>
+                <span>{entry.winnings} BET</span>
               </li>
             ))}
           </ul>

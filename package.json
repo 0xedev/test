@@ -13,6 +13,7 @@
     "@farcaster/core": "^0.16.0",
     "@farcaster/frame-sdk": "^0.0.34",
     "@farcaster/frame-wagmi-connector": "^0.0.22",
+    "@neynar/nodejs-sdk": "^2.26.1",
     "@radix-ui/react-progress": "^1.1.0",
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-tabs": "^1.1.1",
