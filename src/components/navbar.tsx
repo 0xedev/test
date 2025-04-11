@@ -14,12 +14,28 @@ import { useToast } from "@/components/ui/use-toast";
 import { getContract, prepareContractCall } from "thirdweb";
 import { sdk } from "@farcaster/frame-sdk"; // Farcaster SDK
 import { WagmiProvider, createConfig, http } from "wagmi";
+import { defineChain } from "viem";
 import { farcasterFrame } from "@farcaster/frame-wagmi-connector";
+
+const wagmiBaseSepolia = defineChain({
+  id: baseSepolia.id,
+  name: baseSepolia.name ?? "Base Sepolia",
+  network: baseSepolia.name ?? "base-sepolia",
+  nativeCurrency: {
+    name: baseSepolia.nativeCurrency?.name ?? "ETH",
+    symbol: baseSepolia.nativeCurrency?.symbol ?? "ETH",
+    decimals: baseSepolia.nativeCurrency?.decimals ?? 18,
+  },
+  rpcUrls: {
+    default: { http: [baseSepolia.rpc] },
+    public: { http: [baseSepolia.rpc] },
+  },
+});
 
 // Wagmi config for Farcaster wallet
 const wagmiConfig = createConfig({
-  chains: [baseSepolia],
-  transports: { [baseSepolia.id]: http() },
+  chains: [wagmiBaseSepolia],
+  transports: { [wagmiBaseSepolia.id]: http() },
   connectors: [farcasterFrame()],
 });
 
