@@ -1,8 +1,10 @@
+import React from "react";
 import {
   ConnectButton,
   lightTheme,
   useActiveAccount,
   useActiveWallet,
+  useSendTransaction,
 } from "thirdweb/react";
 import { client } from "@/app/client";
 import { baseSepolia } from "thirdweb/chains";
@@ -11,15 +13,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { getContract } from "thirdweb";
-import { useSendTransaction } from "thirdweb/react";
-import { prepareTransaction } from "thirdweb";
-import { tokenABI, tokenAddress } from "@/constants/token";
-import { ethers } from "ethers";
+import { getContract, prepareContractCall } from "thirdweb";
+import { TransactionReceipt } from "thirdweb/transaction";
 
 export function Navbar() {
   const account = useActiveAccount();
-  const wallet = useActiveWallet(); // Add this to detect wallet type
+  const wallet = useActiveWallet();
   const [isClaimLoading, setIsClaimLoading] = useState(false);
   const { toast } = useToast();
 
@@ -39,8 +38,7 @@ export function Navbar() {
   const contract = getContract({
     client,
     chain: baseSepolia,
-    address: tokenAddress,
-    abi: tokenABI,
+    address: "0xE71Cb4FB5a9EEc3CeDdAC3D08108991Ba74258F3",
   });
 
   const { mutate: sendTransaction, isPending } = useSendTransaction();
@@ -57,67 +55,49 @@ export function Navbar() {
 
     setIsClaimLoading(true);
     try {
-      console.log("Wallet type:", wallet?.id); // Log wallet type (e.g., "inAppWallet", "io.metamask")
-      console.log("Preparing transaction for claim...");
-      const encodedData = encodeFunctionData({
-        abi: tokenABI,
-        functionName: "claim",
-        args: [],
+      console.log("Wallet type:", wallet?.id);
+      console.log("Preparing claim transaction...");
+
+      const transaction = prepareContractCall({
+        contract,
+        method: "function claim() external",
+        params: [],
       });
 
-      console.log("Encoded data:", encodedData);
-
-      const transaction = prepareTransaction({
-        client,
-        chain: baseSepolia,
-        to: tokenAddress,
-        data: encodedData,
-        value: BigInt(0),
-      });
-
-      console.log("Transaction prepared:", transaction);
-
-      console.log("Sending transaction...");
       await sendTransaction(transaction, {
-        onSuccess: (result) => {
-          console.log("Transaction successful:", result);
+        onSuccess: (data) => {
+          console.log("Claim successful:", data.transactionHash);
           toast({
             title: "Tokens Claimed!",
             description: "You've successfully claimed 1000 BET tokens.",
             duration: 5000,
           });
         },
-        onError: (error) => {
-          console.error("Transaction Error:", error);
+        onError: (error: Error) => {
+          console.error("Claim Error:", error);
           let errorMessage = "Transaction failed. Please try again.";
           if (error.message.includes("revert")) {
-            errorMessage = "You’ve already claimed your tokens.";
+            errorMessage = "You’ve already claimed or claim limit reached.";
           } else if (error.message.includes("timeout")) {
-            errorMessage =
-              "Network timeout. Check your connection and try again.";
-          } else if (error.message.includes("gas")) {
-            errorMessage =
-              "Gas sponsorship failed. Try with a different wallet.";
+            errorMessage = "Network timeout. Check your connection.";
+          } else if (error.message.includes("insufficient")) {
+            errorMessage = "Insufficient ETH for gas. Fund your wallet.";
           }
           toast({
-            title: "Transaction Failed",
+            title: "Claim Failed",
             description: errorMessage,
             variant: "destructive",
           });
-          throw error;
         },
       });
-      console.log("Transaction sent successfully");
     } catch (error) {
       console.error("Claim Error:", error);
-      let errorMessage =
-        "There was an error claiming your tokens. Please try again.";
-      if ((error as Error).message?.includes("revert")) {
-        errorMessage = "You’ve already claimed your tokens.";
-      } else if ((error as Error).message?.includes("timeout")) {
-        errorMessage = "Network timeout. Check your connection and try again.";
-      } else if ((error as Error).message?.includes("gas")) {
-        errorMessage = "Gas sponsorship issue. Ensure paymaster is configured.";
+      const err = error as Error;
+      let errorMessage = "There was an error claiming your tokens.";
+      if (err.message?.includes("revert")) {
+        errorMessage = "You’ve already claimed or claim limit reached.";
+      } else if (err.message?.includes("timeout")) {
+        errorMessage = "Network timeout. Check your connection.";
       }
       toast({
         title: "Claim Failed",
@@ -155,41 +135,22 @@ export function Navbar() {
           theme={lightTheme()}
           chain={baseSepolia}
           wallets={wallets}
-          connectModal={{
-            size: "compact",
-          }}
+          connectModal={{ size: "compact" }}
           connectButton={{
-            style: {
-              fontSize: "0.75rem !important",
-              height: "2.5rem !important",
-            },
+            style: { fontSize: "0.75rem", height: "2.5rem" },
             label: "Sign In",
           }}
           detailsButton={{
             displayBalanceToken: {
-              [baseSepolia.id]: tokenAddress,
+              [baseSepolia.id]: "0xE71Cb4FB5a9EEc3CeDdAC3D08108991Ba74258F3",
             },
           }}
           accountAbstraction={{
             chain: baseSepolia,
-            sponsorGas: true, // Keep this for now, we’ll test disabling it
+            sponsorGas: true,
           }}
         />
       </div>
     </div>
   );
-}
-
-function encodeFunctionData({
-  abi,
-  functionName,
-  args,
-}: {
-  abi: any;
-  functionName: string;
-  args: any[];
-}): `0x${string}` {
-  const iface = new ethers.Interface(abi);
-  const data = iface.encodeFunctionData(functionName, args);
-  return data as `0x${string}`;
 }
