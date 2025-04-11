@@ -115,10 +115,14 @@ export function Navbar() {
           });
         },
       });
-    } catch (error) {
+    } catch (error: unknown) {
+      console.error("Claim error:", error); // Log the error for debugging
       toast({
         title: "Claim Failed",
-        description: "An error occurred.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred.",
         variant: "destructive",
       });
     } finally {
