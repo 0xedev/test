@@ -42,15 +42,15 @@ const contract = getContract({
     id: baseSepolia.id,
     name: baseSepolia.name,
     nativeCurrency: baseSepolia.nativeCurrency,
-    rpc: "https://base-sepolia.g.alchemy.com/v2/jprc9bb4eoqJdv5K71YUZdhKyf20gILa",
+    rpc: "https://base-sepolia.g.alchemy.com/v2/jprc9bb4eoqJdv5K71YUZdhKyf20gILa", // Ensure `rpc` is defined
     blockExplorers: [
       {
         name: "Basescan",
         url: "https://sepolia.basescan.org",
         apiUrl: "https://api-sepolia.basescan.org/api",
       },
-    ], // Changed to an array
-  } as Chain,
+    ], // Ensure this is an array
+  } as Chain, // Use the `Chain` type
   address: "0xE71Cb4FB5a9EEc3CeDdAC3D08108991Ba74258F3",
 });
 
