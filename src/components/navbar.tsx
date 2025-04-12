@@ -54,6 +54,21 @@ const contract = getContract({
   address: "0xE71Cb4FB5a9EEc3CeDdAC3D08108991Ba74258F3",
 });
 
+const customBaseSepolia = {
+  id: baseSepolia.id,
+  name: baseSepolia.name,
+  nativeCurrency: baseSepolia.nativeCurrency,
+  rpc: "https://base-sepolia.g.alchemy.com/v2/jprc9bb4eoqJdv5K71YUZdhKyf20gILa", // Add the `rpc` property
+  blockExplorers: [
+    {
+      name: "Basescan",
+      url: "https://sepolia.basescan.org",
+      apiUrl: "https://api-sepolia.basescan.org/api",
+    },
+  ], // Ensure this is an array
+  network: "base-sepolia", // Add any additional required properties
+};
+
 export function Navbar() {
   const account = useActiveAccount();
   const [isClaimLoading, setIsClaimLoading] = useState(false);
@@ -155,7 +170,7 @@ export function Navbar() {
           <ConnectButton
             client={client}
             theme={lightTheme()}
-            chain={baseSepolia}
+            chain={customBaseSepolia} // Use the custom chain object
             wallets={wallets}
             connectModal={{ size: "compact" }}
             connectButton={{
@@ -165,7 +180,7 @@ export function Navbar() {
             detailsButton={{
               displayBalanceToken: { [baseSepolia.id]: contract.address },
             }}
-            accountAbstraction={{ chain: baseSepolia, sponsorGas: true }}
+            accountAbstraction={{ chain: customBaseSepolia, sponsorGas: true }}
           />
         </div>
       </div>
