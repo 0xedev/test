@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "Forecast outcomes!",
   openGraph: {
     title: "ForeCast",
-    images: ["/banner2.avif"],
+    images: ["/Banner.jpg"],
   },
   other: {
     "fc:frame": JSON.stringify({
@@ -18,8 +18,8 @@ export const metadata: Metadata = {
           type: "launch_frame",
           url: "https://buster-mkt.vercel.app",
           name: "ForeCast",
-          splashImageUrl: "https://buster-mkt.vercel.app/banner2.avif",
-          splashBackgroundColor: "#ffffff",
+          splashImageUrl: "https://buster-mkt.vercel.app/Banner.jpg",
+          splashBackgroundColor: "#333333",
         },
       },
     }),
