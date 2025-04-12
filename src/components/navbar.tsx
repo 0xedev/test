@@ -15,7 +15,7 @@ import { getContract, prepareContractCall } from "thirdweb";
 import { sdk } from "@farcaster/frame-sdk";
 import { WagmiConfig, createConfig, http } from "wagmi";
 import { farcasterFrame } from "@farcaster/frame-wagmi-connector";
-import { ChainOptions } from "thirdweb";
+import { Chain } from "thirdweb";
 
 const wagmiConfig = createConfig({
   chains: [baseSepolia],
@@ -43,14 +43,14 @@ const contract = getContract({
     name: baseSepolia.name,
     nativeCurrency: baseSepolia.nativeCurrency,
     rpc: "https://base-sepolia.g.alchemy.com/v2/jprc9bb4eoqJdv5K71YUZdhKyf20gILa",
-    blockExplorers: {
-      default: {
+    blockExplorers: [
+      {
         name: "Basescan",
         url: "https://sepolia.basescan.org",
         apiUrl: "https://api-sepolia.basescan.org/api",
       },
-    },
-  } satisfies ChainOptions,
+    ], // Changed to an array
+  } as Chain,
   address: "0xE71Cb4FB5a9EEc3CeDdAC3D08108991Ba74258F3",
 });
 
