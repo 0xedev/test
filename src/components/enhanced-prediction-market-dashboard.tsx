@@ -9,6 +9,7 @@ import { Navbar } from "./navbar";
 import { MarketCardSkeleton } from "./market-card-skeleton";
 import { Footer } from "./footer";
 import { useEffect, useState } from "react";
+import { sdk } from "@farcaster/frame-sdk";
 
 export function EnhancedPredictionMarketDashboard() {
   const { data: marketCount, isLoading: isLoadingMarketCount } =
@@ -41,6 +42,11 @@ export function EnhancedPredictionMarketDashboard() {
       .finally(() => {
         setIsLoadingLeaderboard(false);
       });
+  }, []);
+
+  // Signal readiness to Farcaster client
+  useEffect(() => {
+    sdk.actions.ready();
   }, []);
 
   const skeletonCards = Array.from({ length: 6 }, (_, i) => (
