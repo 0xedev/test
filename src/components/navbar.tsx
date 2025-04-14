@@ -84,7 +84,6 @@ export function Navbar() {
                 [baseSepolia.id]: "0xE71Cb4FB5a9EEc3CeDdAC3D08108991Ba74258F3",
               },
             }}
-            accountAbstraction={{ chain: customBaseSepolia, sponsorGas: true }}
           />
         </div>
       </div>
