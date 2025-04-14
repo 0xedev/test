@@ -3,7 +3,7 @@ import React, { useEffect } from "react";
 import { ConnectButton, lightTheme, useActiveAccount } from "thirdweb/react";
 import { client } from "@/app/client";
 import { baseSepolia } from "wagmi/chains";
-import { inAppWallet, createWallet } from "thirdweb/wallets";
+import { createWallet } from "thirdweb/wallets";
 import { ClaimTokensButton } from "./ClaimTokensButton";
 import { sdk } from "@farcaster/frame-sdk";
 import { WagmiConfig, createConfig, http } from "wagmi";
@@ -17,11 +17,6 @@ const wagmiConfig = createConfig({
 });
 
 const wallets = [
-  inAppWallet({
-    auth: {
-      options: ["google", "farcaster", "passkey"],
-    },
-  }),
   createWallet("io.metamask"),
   createWallet("com.coinbase.wallet"),
   createWallet("me.rainbow"),
