@@ -117,7 +117,7 @@ export function Navbar() {
         onSuccess: () => {
           toast({
             title: "Tokens Claimed!",
-            description: "You've claimed 1000 BET tokens.",
+            description: "You've claimed 5000 BUSTER tokens.",
           });
         },
         onError: (error) => {

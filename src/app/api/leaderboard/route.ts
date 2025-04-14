@@ -25,7 +25,7 @@ const CONTRACT_ABI = [
 const contract = getContract({
   client,
   chain: baseSepolia,
-  address: "0xF4e3543e0f5c33f8E605353cc6c4eD00c32570ED",
+  address: "0x32990F3fA34108B3f3c54d663861E2B88e84C1DB",
   abi: CONTRACT_ABI,
 });
 
