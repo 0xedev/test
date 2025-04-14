@@ -1,14 +1,12 @@
 // src/components/navbar.tsx
-import React, { useEffect } from "react";
-import { ConnectButton, lightTheme, useActiveAccount } from "thirdweb/react";
+import React from "react"; // Removed unused `useEffect`
+import { ConnectButton, lightTheme } from "thirdweb/react"; // Removed `useActiveAccount`
 import { client } from "@/app/client";
 import { baseSepolia } from "wagmi/chains";
 import { createWallet } from "thirdweb/wallets";
 import { ClaimTokensButton } from "./ClaimTokensButton";
-import { sdk } from "@farcaster/frame-sdk";
 import { WagmiConfig, createConfig, http } from "wagmi";
 import { farcasterFrame } from "@farcaster/frame-wagmi-connector";
-import { useToast } from "@/components/ui/use-toast";
 
 const wagmiConfig = createConfig({
   chains: [baseSepolia],
@@ -40,29 +38,6 @@ const customBaseSepolia = {
 };
 
 export function Navbar() {
-  const account = useActiveAccount();
-  const { toast } = useToast();
-
-  // useEffect(() => {
-  //   if (!account) return;
-
-  //   sdk.actions.ready();
-  //   sdk.actions
-  //     .signIn({ nonce: "forecast-" + Date.now() })
-  //     .then((result) => {
-  //       console.log("SIWF Result:", result);
-  //     })
-  //     .catch((err) => {
-  //       console.error("SIWF Error:", err);
-  //       toast({
-  //         title: "Farcaster Sign-In Failed",
-  //         description:
-  //           "Could not sign in with Farcaster. Check console for details.",
-  //         variant: "destructive",
-  //       });
-  //     });
-  // }, [account]);
-
   return (
     <WagmiConfig config={wagmiConfig}>
       <div className="flex justify-between items-center mb-6">
