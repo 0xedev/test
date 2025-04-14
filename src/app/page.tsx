@@ -3,24 +3,25 @@ import { EnhancedPredictionMarketDashboard } from "@/components/enhanced-predict
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "ForeCast - Prediction Market",
+  title: "Forecast - Prediction Market",
   description: "Forecast outcomes!",
   openGraph: {
-    title: "ForeCast",
-    images: ["/Banner.jpg"],
+    title: "Forecast",
+    images: ["/icon.jpg"],
   },
   other: {
     "fc:frame": JSON.stringify({
       version: "next",
-      imageUrl: "https://buster-mkt.vercel.app/Banner.jpg",
+      imageUrl: "https://buster-mkt.vercel.app/icon.jpg",
       button: {
-        title: "Enter ForeCast",
+        title: "Forecast",
         action: {
           type: "launch_frame",
-          name: "ForeCast",
+          name: "Forecast",
+          iconUrl: "https://buster-mkt.vercel.app/icon1.jpg",
           url: "https://buster-mkt.vercel.app",
-          splashImageUrl: "https://buster-mkt.vercel.app/Banner.jpg",
-          splashBackgroundColor: "#333333",
+          splashImageUrl: "https://buster-mkt.vercel.app/icon.jpg",
+          splashBackgroundColor: "#ffffff",
         },
       },
     }),

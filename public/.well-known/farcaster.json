@@ -6,13 +6,13 @@
   },
   "frame": {
     "version": "1",
-    "name": "ForeCast",
-    "iconUrl": "https://buster-mkt.vercel.app/icon.jpg",
+    "name": "FORECAST",
+    "iconUrl": "https://buster-mkt.vercel.app/icon1.jpg",
     "homeUrl": "https://buster-mkt.vercel.app",
-    "imageUrl": "https://buster-mkt.vercel.app/Banner.jpg",
-    "buttonTitle": "ForeCast",
-    "splashImageUrl": "https://buster-mkt.vercel.app/Banner.jpg",
-    "splashBackgroundColor": "#333333",
+    "imageUrl": "https://buster-mkt.vercel.app/icon.jpg",
+    "buttonTitle": "Forecast",
+    "splashImageUrl": "https://buster-mkt.vercel.app/icon.jpg",
+    "splashBackgroundColor": "#ffffff",
     "webhookUrl": "https://buster-mkt.vercel.app/api/webhook"
   }
 }

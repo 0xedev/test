@@ -16,7 +16,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "ForeCast",
+  title: "Forecast",
   description: "political prediction market",
 };
 
