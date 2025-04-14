@@ -1,3 +1,4 @@
+// src/components/enhanced-prediction-market-dashboard.tsx
 "use client";
 
 import { useReadContract } from "thirdweb/react";
@@ -57,35 +58,10 @@ export function EnhancedPredictionMarketDashboard() {
             className="w-full h-auto rounded-lg"
           />
         </div>
-        <div className="mb-6">
-          <h2 className="text-xl font-bold mb-2">Leaderboard</h2>
-          {isLoadingLeaderboard ? (
-            <div className="animate-pulse space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-6 bg-gray-200 rounded"></div>
-              ))}
-            </div>
-          ) : leaderboard.length > 0 ? (
-            <ul className="space-y-2">
-              {leaderboard.map((entry, idx) => (
-                <li key={entry.fid} className="flex justify-between text-sm">
-                  <span>
-                    {idx + 1}. {entry.username} (FID: {entry.fid})
-                  </span>
-                  <span>{entry.winnings} BET</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-gray-500">
-              No leaderboard data available
-            </p>
-          )}
-        </div>
         <Tabs defaultValue="active" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="pending">Pending Resolution</TabsTrigger>
+            <TabsTrigger value="pending">Pending</TabsTrigger>
             <TabsTrigger value="resolved">Resolved</TabsTrigger>
             <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
           </TabsList>
@@ -97,26 +73,54 @@ export function EnhancedPredictionMarketDashboard() {
             </TabsContent>
           ) : (
             <>
-              <TabsContent value="active">
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+              <TabsContent value="active" className="mt-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {Array.from({ length: Number(marketCount) }, (_, index) => (
                     <MarketCard key={index} index={index} filter="active" />
                   ))}
                 </div>
               </TabsContent>
-              <TabsContent value="pending">
+              <TabsContent value="pending" className="mt-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {Array.from({ length: Number(marketCount) }, (_, index) => (
                     <MarketCard key={index} index={index} filter="pending" />
                   ))}
                 </div>
               </TabsContent>
-              <TabsContent value="resolved">
+              <TabsContent value="resolved" className="mt-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {Array.from({ length: Number(marketCount) }, (_, index) => (
                     <MarketCard key={index} index={index} filter="resolved" />
                   ))}
                 </div>
+              </TabsContent>
+              <TabsContent value="leaderboard" className="mt-6">
+                <h2 className="text-xl font-bold mb-4">Top Predictors</h2>
+                {isLoadingLeaderboard ? (
+                  <div className="animate-pulse space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-6 bg-gray-200 rounded"></div>
+                    ))}
+                  </div>
+                ) : leaderboard.length > 0 ? (
+                  <ul className="space-y-2">
+                    {leaderboard.map((entry, idx) => (
+                      <li
+                        key={entry.fid}
+                        className="flex justify-between text-sm"
+                      >
+                        <span>
+                          {idx + 1}. {entry.username} (FID: {entry.fid})
+                        </span>
+                        <span>{entry.winnings} BET</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-gray-500">
+                    No leaderboard data available
+                  </p>
+                )}
               </TabsContent>
             </>
           )}
