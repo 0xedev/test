@@ -58,7 +58,7 @@ export function EnhancedPredictionMarketDashboard() {
           />
         </div>
         <div className="mb-6">
-          <h2 className="text-xl font-bold mb-2">Top Predictors</h2>
+          <h2 className="text-xl font-bold mb-2">Leaderboard</h2>
           {isLoadingLeaderboard ? (
             <div className="animate-pulse space-y-2">
               {[1, 2, 3].map((i) => (
@@ -87,6 +87,7 @@ export function EnhancedPredictionMarketDashboard() {
             <TabsTrigger value="active">Active</TabsTrigger>
             <TabsTrigger value="pending">Pending Resolution</TabsTrigger>
             <TabsTrigger value="resolved">Resolved</TabsTrigger>
+            <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
           </TabsList>
           {isLoadingMarketCount ? (
             <TabsContent value="active" className="mt-6">
@@ -97,7 +98,7 @@ export function EnhancedPredictionMarketDashboard() {
           ) : (
             <>
               <TabsContent value="active">
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
                   {Array.from({ length: Number(marketCount) }, (_, index) => (
                     <MarketCard key={index} index={index} filter="active" />
                   ))}

@@ -1,21 +1,14 @@
-import React, { useEffect, useState } from "react";
-import {
-  ConnectButton,
-  lightTheme,
-  useActiveAccount,
-  useSendTransaction,
-} from "thirdweb/react";
+// src/components/navbar.tsx
+import React, { useEffect } from "react";
+import { ConnectButton, lightTheme, useActiveAccount } from "thirdweb/react";
 import { client } from "@/app/client";
 import { baseSepolia } from "wagmi/chains";
 import { inAppWallet, createWallet } from "thirdweb/wallets";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { getContract, prepareContractCall } from "thirdweb";
+import { ClaimTokensButton } from "./ClaimTokensButton";
 import { sdk } from "@farcaster/frame-sdk";
 import { WagmiConfig, createConfig, http } from "wagmi";
 import { farcasterFrame } from "@farcaster/frame-wagmi-connector";
-import { Chain } from "thirdweb";
+import { useToast } from "@/components/ui/use-toast";
 
 const wagmiConfig = createConfig({
   chains: [baseSepolia],
@@ -36,47 +29,27 @@ const wallets = [
   createWallet("io.zerion.wallet"),
 ];
 
-const contract = getContract({
-  client,
-  chain: {
-    id: baseSepolia.id,
-    name: baseSepolia.name,
-    nativeCurrency: baseSepolia.nativeCurrency,
-    rpc: "https://base-sepolia.g.alchemy.com/v2/jprc9bb4eoqJdv5K71YUZdhKyf20gILa", // Ensure `rpc` is defined
-    blockExplorers: [
-      {
-        name: "Basescan",
-        url: "https://sepolia.basescan.org",
-        apiUrl: "https://api-sepolia.basescan.org/api",
-      },
-    ], // Ensure this is an array
-  } as Chain, // Use the `Chain` type
-  address: "0xE71Cb4FB5a9EEc3CeDdAC3D08108991Ba74258F3",
-});
-
 const customBaseSepolia = {
   id: baseSepolia.id,
   name: baseSepolia.name,
   nativeCurrency: baseSepolia.nativeCurrency,
-  rpc: "https://base-sepolia.g.alchemy.com/v2/jprc9bb4eoqJdv5K71YUZdhKyf20gILa", // Add the `rpc` property
+  rpc: "https://base-sepolia.g.alchemy.com/v2/jprc9bb4eoqJdv5K71YUZdhKyf20gILa",
   blockExplorers: [
     {
       name: "Basescan",
       url: "https://sepolia.basescan.org",
       apiUrl: "https://api-sepolia.basescan.org/api",
     },
-  ], // Ensure this is an array
-  network: "base-sepolia", // Add any additional required properties
+  ],
+  network: "base-sepolia",
 };
 
 export function Navbar() {
   const account = useActiveAccount();
-  const [isClaimLoading, setIsClaimLoading] = useState(false);
   const { toast } = useToast();
-  const { mutate: sendTransaction, isPending } = useSendTransaction();
 
   useEffect(() => {
-    if (!account) return; // Wait for wallet connection
+    if (!account) return;
 
     sdk.actions.ready();
     sdk.actions
@@ -93,84 +66,18 @@ export function Navbar() {
           variant: "destructive",
         });
       });
-  }, [account]); // Re-run when account changes
-
-  const handleClaimTokens = async () => {
-    if (!account) {
-      toast({
-        title: "Error",
-        description: "Please connect your wallet.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsClaimLoading(true);
-    try {
-      const transaction = prepareContractCall({
-        contract,
-        method: "function claim() external",
-        params: [],
-      });
-
-      await sendTransaction(transaction, {
-        onSuccess: () => {
-          toast({
-            title: "Tokens Claimed!",
-            description: "You've claimed 5000 BUSTER tokens.",
-          });
-        },
-        onError: (error) => {
-          let message = "Transaction failed.";
-          if (error.message.includes("revert"))
-            message = "Already claimed or limit reached.";
-          toast({
-            title: "Claim Failed",
-            description: message,
-            variant: "destructive",
-          });
-        },
-      });
-    } catch (error: unknown) {
-      console.error("Claim error:", error); // Log the error for debugging
-      toast({
-        title: "Claim Failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "An unexpected error occurred.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsClaimLoading(false);
-    }
-  };
+  }, [account]);
 
   return (
     <WagmiConfig config={wagmiConfig}>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">ForeCast</h1>
         <div className="items-center flex gap-2">
-          {account && (
-            <Button
-              onClick={handleClaimTokens}
-              disabled={isClaimLoading || isPending}
-              variant="outline"
-            >
-              {isClaimLoading || isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Claiming...
-                </>
-              ) : (
-                "Claim Tokens"
-              )}
-            </Button>
-          )}
+          <ClaimTokensButton />
           <ConnectButton
             client={client}
             theme={lightTheme()}
-            chain={customBaseSepolia} // Use the custom chain object
+            chain={customBaseSepolia}
             wallets={wallets}
             connectModal={{ size: "compact" }}
             connectButton={{
@@ -178,7 +85,9 @@ export function Navbar() {
               label: "Sign In",
             }}
             detailsButton={{
-              displayBalanceToken: { [baseSepolia.id]: contract.address },
+              displayBalanceToken: {
+                [baseSepolia.id]: "0xE71Cb4FB5a9EEc3CeDdAC3D08108991Ba74258F3",
+              },
             }}
             accountAbstraction={{ chain: customBaseSepolia, sponsorGas: true }}
           />

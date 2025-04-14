@@ -1,3 +1,4 @@
+// src/app/page.tsx
 import { EnhancedPredictionMarketDashboard } from "@/components/enhanced-prediction-market-dashboard";
 import { Metadata } from "next";
 
@@ -9,20 +10,11 @@ export const metadata: Metadata = {
     images: ["/Banner.jpg"],
   },
   other: {
-    "fc:frame": JSON.stringify({
-      version: "next",
-      imageUrl: "https://buster-mkt.vercel.app/Banner.jpg",
-      button: {
-        title: "ForeCast now!",
-        action: {
-          type: "launch_frame",
-          url: "https://buster-mkt.vercel.app",
-          name: "ForeCast",
-          splashImageUrl: "https://buster-mkt.vercel.app/Banner.jpg",
-          splashBackgroundColor: "#333333",
-        },
-      },
-    }),
+    "fc:frame": "1",
+    "fc:frame:image": "https://buster-mkt.vercel.app/Banner.jpg",
+    "fc:frame:button:1": "Enter ForeCast",
+    "fc:frame:button:1:action": "link",
+    "fc:frame:button:1:target": "https://buster-mkt.vercel.app",
   },
 };
 
