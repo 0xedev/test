@@ -10,11 +10,20 @@ export const metadata: Metadata = {
     images: ["/Banner.jpg"],
   },
   other: {
-    "fc:frame": "1",
-    "fc:frame:image": "https://buster-mkt.vercel.app/Banner.jpg",
-    "fc:frame:button:1": "Enter ForeCast",
-    "fc:frame:button:1:action": "link",
-    "fc:frame:button:1:target": "https://buster-mkt.vercel.app",
+    "fc:frame": JSON.stringify({
+      version: "next",
+      imageUrl: "https://buster-mkt.vercel.app/Banner.jpg",
+      button: {
+        title: "Enter ForeCast",
+        action: {
+          type: "launch_frame",
+          name: "ForeCast",
+          url: "https://buster-mkt.vercel.app",
+          splashImageUrl: "https://buster-mkt.vercel.app/Banner.jpg",
+          splashBackgroundColor: "#333333",
+        },
+      },
+    }),
   },
 };
 

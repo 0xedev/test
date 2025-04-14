@@ -61,8 +61,8 @@ export function EnhancedPredictionMarketDashboard() {
         <Tabs defaultValue="active" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="resolved">Resolved</TabsTrigger>
+            <TabsTrigger value="pending">Pending Resolved</TabsTrigger>
+            <TabsTrigger value="resolved">Results</TabsTrigger>
             <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
           </TabsList>
           {isLoadingMarketCount ? (
