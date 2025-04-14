@@ -43,25 +43,25 @@ export function Navbar() {
   const account = useActiveAccount();
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (!account) return;
+  // useEffect(() => {
+  //   if (!account) return;
 
-    sdk.actions.ready();
-    sdk.actions
-      .signIn({ nonce: "forecast-" + Date.now() })
-      .then((result) => {
-        console.log("SIWF Result:", result);
-      })
-      .catch((err) => {
-        console.error("SIWF Error:", err);
-        toast({
-          title: "Farcaster Sign-In Failed",
-          description:
-            "Could not sign in with Farcaster. Check console for details.",
-          variant: "destructive",
-        });
-      });
-  }, [account]);
+  //   sdk.actions.ready();
+  //   sdk.actions
+  //     .signIn({ nonce: "forecast-" + Date.now() })
+  //     .then((result) => {
+  //       console.log("SIWF Result:", result);
+  //     })
+  //     .catch((err) => {
+  //       console.error("SIWF Error:", err);
+  //       toast({
+  //         title: "Farcaster Sign-In Failed",
+  //         description:
+  //           "Could not sign in with Farcaster. Check console for details.",
+  //         variant: "destructive",
+  //       });
+  //     });
+  // }, [account]);
 
   return (
     <WagmiConfig config={wagmiConfig}>
