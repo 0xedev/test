@@ -46,8 +46,10 @@ export function EnhancedPredictionMarketDashboard() {
 
   // Signal readiness to Farcaster client
   useEffect(() => {
-    sdk.actions.ready();
-  }, []);
+    if (!isLoadingMarketCount && !isLoadingLeaderboard) {
+      sdk.actions.ready();
+    }
+  }, [isLoadingMarketCount, isLoadingLeaderboard]);
 
   const skeletonCards = Array.from({ length: 6 }, (_, i) => (
     <MarketCardSkeleton key={`skeleton-${i}`} />

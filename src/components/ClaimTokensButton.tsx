@@ -73,10 +73,10 @@ export function ClaimTokensButton() {
     }
   };
 
-  return (
+  return account ? (
     <Button
       onClick={handleClaimTokens}
-      disabled={isClaimLoading || isPending || !account}
+      disabled={isClaimLoading || isPending}
       variant="outline"
     >
       {isClaimLoading || isPending ? (
@@ -88,5 +88,5 @@ export function ClaimTokensButton() {
         "Claim Tokens"
       )}
     </Button>
-  );
+  ) : null;
 }
