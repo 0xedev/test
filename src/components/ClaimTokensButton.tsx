@@ -21,7 +21,7 @@ export function ClaimTokensButton() {
   const [isClaimLoading, setIsClaimLoading] = useState(false);
   const { toast } = useToast();
   const { mutate: sendTransaction, isPending } = useSendTransaction();
-
+  const [hasClaimed, setHasClaimed] = useState(false);
   const handleClaimTokens = async () => {
     if (!account) {
       toast({
@@ -46,6 +46,7 @@ export function ClaimTokensButton() {
             title: "Tokens Claimed!",
             description: "You've claimed 5000 BUSTER tokens.",
           });
+          setHasClaimed(true);
         },
         onError: (error) => {
           let message = "Transaction failed.";
@@ -73,11 +74,16 @@ export function ClaimTokensButton() {
     }
   };
 
-  return account ? (
+  if (!account || hasClaimed) {
+    return null;
+  }
+
+  return (
     <Button
       onClick={handleClaimTokens}
       disabled={isClaimLoading || isPending}
       variant="outline"
+      className="px-3 py-1 text-sm"
     >
       {isClaimLoading || isPending ? (
         <>
@@ -88,5 +94,5 @@ export function ClaimTokensButton() {
         "Claim Tokens"
       )}
     </Button>
-  ) : null;
+  );
 }
