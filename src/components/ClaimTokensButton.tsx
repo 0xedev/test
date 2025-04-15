@@ -8,12 +8,12 @@ import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { getContract, prepareContractCall } from "thirdweb";
 import { client } from "@/app/client";
-import { baseSepolia } from "thirdweb/chains";
+import { base } from "thirdweb/chains";
 
 const contract = getContract({
   client,
-  chain: baseSepolia,
-  address: "0xE71Cb4FB5a9EEc3CeDdAC3D08108991Ba74258F3",
+  chain: base,
+  address: "0x55b04F15A1878fa5091D5E35ebceBC06A5EC2F31",
 });
 
 export function ClaimTokensButton() {

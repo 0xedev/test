@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { NeynarAPIClient } from "@neynar/nodejs-sdk";
 import { client } from "@/app/client";
-import { baseSepolia } from "thirdweb/chains";
+import { base } from "thirdweb/chains";
 import { getContract, getContractEvents, prepareEvent } from "thirdweb";
 import { toEther } from "thirdweb";
 
@@ -24,8 +24,8 @@ const CONTRACT_ABI = [
 // Initialize contract with ABI
 const contract = getContract({
   client,
-  chain: baseSepolia,
-  address: "0x32990F3fA34108B3f3c54d663861E2B88e84C1DB",
+  chain: base,
+  address: "0xD3fa48B3bb4f89bF3B75F5763475B774076215D1",
   abi: CONTRACT_ABI,
 });
 
