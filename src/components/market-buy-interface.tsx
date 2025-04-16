@@ -219,7 +219,7 @@ export function MarketBuyInterface({
         });
 
         await sendTransaction(approveTx, {
-          onSuccess: async (result) => {
+          onSuccess: async () => {
             toast({
               title: "Approved",
               description: "Tokens approved for voting. Processing vote now...",
@@ -376,9 +376,10 @@ export function MarketBuyInterface({
           <DialogHeader>
             <DialogTitle>Confirm Your Vote</DialogTitle>
             <DialogDescription>
-              You're voting {voteOption === "A" ? amountA : amountB} $BSTR on "
-              {voteOption === "A" ? market.optionA : market.optionB}" for market
-              "{market.question}". Please confirm.
+              You&apos;re voting {voteOption === "A" ? amountA : amountB} $BSTR
+              on &quot;
+              {voteOption === "A" ? market.optionA : market.optionB}&quot; for
+              market &quot;{market.question}&quot;. Please confirm.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

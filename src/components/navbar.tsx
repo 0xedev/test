@@ -154,7 +154,8 @@ export function Navbar() {
             <DialogTitle>Welcome to Forecast!</DialogTitle>
             <DialogDescription>
               To vote on markets, claim your $BSTR tokens. Connect your wallet
-              if you haven't, then click below to claim.
+              if you haven&apos;t, then click below to claim. Ignore if you
+              claimed already.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
