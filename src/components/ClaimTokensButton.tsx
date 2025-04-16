@@ -21,7 +21,7 @@ import { toast } from "@/hooks/use-toast";
 const customBaseChain = {
   ...base,
   testnet: undefined,
-  rpc: "https://mainnet.base.org",
+  rpc: "https://base-mainnet.g.alchemy.com/v2/jprc9bb4eoqJdv5K71YUZdhKyf20gILa",
   blockExplorers: [
     {
       name: "Basescan",

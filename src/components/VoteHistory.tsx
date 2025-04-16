@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useActiveAccount, useContractEvents } from "thirdweb/react";
-import { prepareEvent } from "thirdweb";
+import { prepareEvent, readContract } from "thirdweb";
 import { contract } from "@/constants/contract";
 
 interface Vote {
@@ -28,24 +28,6 @@ export function VoteHistory() {
     events: [preparedEvent],
   });
 
-  // Fetch market info separately
-  const fetchMarketInfo = async (
-    marketId: number
-  ): Promise<{ question: string; optionA: string; optionB: string } | null> => {
-    try {
-      const response = await fetch(`/api/market-info?marketId=${marketId}`);
-      const market = await response.json();
-      return {
-        question: market.question,
-        optionA: market.optionA,
-        optionB: market.optionB,
-      };
-    } catch (error) {
-      console.error("Fetch market info error:", error);
-      return null;
-    }
-  };
-
   useEffect(() => {
     if (!account || !events) {
       setIsLoading(false);
@@ -55,27 +37,78 @@ export function VoteHistory() {
     const fetchVotes = async () => {
       setIsLoading(true);
       try {
-        const userVotes = await Promise.all(
-          events
-            .filter((e) => e.args.buyer === account.address)
-            .map(async (e) => {
-              const market = await fetchMarketInfo(Number(e.args.marketId));
-              if (!market) {
-                return null;
-              }
+        // Get unique market IDs
+        const marketIds = [
+          ...new Set(
+            events
+              .filter(
+                (e) =>
+                  e.args.buyer.toLowerCase() === account.address.toLowerCase()
+              )
+              .map((e) => Number(e.args.marketId))
+          ),
+        ];
+
+        // Fetch market info
+        const marketInfos = await Promise.all(
+          marketIds.map(async (marketId) => {
+            try {
+              const market = await readContract({
+                contract,
+                method:
+                  "function getMarketInfo(uint256 marketId) view returns (string question, string optionA, string optionB, uint256 endTime, uint8 outcome, uint256 totalOptionAShares, uint256 totalOptionBShares, bool resolved)",
+                params: [BigInt(marketId)],
+              });
               return {
-                marketId: Number(e.args.marketId),
-                option: e.args.isOptionA ? market.optionA : market.optionB,
-                amount: e.args.amount,
-                marketName: market.question,
+                marketId,
+                question: market[0],
+                optionA: market[1],
+                optionB: market[2],
               };
-            })
+            } catch (error) {
+              console.error(`Market ${marketId} fetch failed:`, error);
+              return null;
+            }
+          })
         );
-        setVotes(userVotes.filter((vote): vote is Vote => vote !== null));
+
+        const validMarkets = marketInfos.filter(
+          (
+            m
+          ): m is {
+            marketId: number;
+            question: string;
+            optionA: string;
+            optionB: string;
+          } => m !== null
+        );
+
+        // Map events to votes
+        const userVotes = events
+          .filter(
+            (e) => e.args.buyer.toLowerCase() === account.address.toLowerCase()
+          )
+          .map((e) => {
+            const market = validMarkets.find(
+              (m) => m.marketId === Number(e.args.marketId)
+            );
+            if (!market) return null;
+            return {
+              marketId: Number(e.args.marketId),
+              option: e.args.isOptionA ? market.optionA : market.optionB,
+              amount: e.args.amount,
+              marketName: market.question,
+            };
+          })
+          .filter((vote): vote is Vote => vote !== null);
+
+        setVotes(userVotes);
       } catch (error) {
         console.error("Vote history error:", error);
+        setVotes([]);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     fetchVotes();
