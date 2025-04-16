@@ -161,8 +161,15 @@ export function MarketBuyInterface({
             },
           });
           return;
-        } catch (error: any) {
-          if (error.message.includes("429") && retries > 1) {
+        } catch (error: unknown) {
+          if (
+            typeof error === "object" &&
+            error !== null &&
+            "message" in error &&
+            typeof (error as { message: string }).message === "string" &&
+            (error as { message: string }).message.includes("429") &&
+            retries > 1
+          ) {
             await new Promise((resolve) =>
               setTimeout(resolve, 2000 * (4 - retries))
             );
@@ -172,12 +179,21 @@ export function MarketBuyInterface({
           throw error;
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      let message = "Failed to vote.";
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error &&
+        typeof (error as { message: string }).message === "string"
+      ) {
+        message = (error as { message: string }).message.includes("0xfb8f41b2")
+          ? "Please approve tokens first."
+          : (error as { message: string }).message;
+      }
       toast({
         title: "Vote Failed",
-        description: error.message.includes("0xfb8f41b2")
-          ? "Please approve tokens first."
-          : error.message || "Failed to vote.",
+        description: message,
         variant: "destructive",
       });
     }
