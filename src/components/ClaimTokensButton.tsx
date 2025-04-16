@@ -107,7 +107,7 @@ export function ClaimTokensButton() {
       // Prepare claim transaction
       const preparedTx = prepareContractCall({
         contract: tokenContract,
-        method: "function claim()", // Verify this matches your contract
+        method: "function claim()",
         params: [],
         value: BigInt(0),
       });
@@ -129,10 +129,11 @@ export function ClaimTokensButton() {
           throw error;
         },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error.message || "Failed to claim $BSTR.",
+        description:
+          error instanceof Error ? error.message : "Failed to claim $BSTR.",
         variant: "destructive",
       });
     } finally {

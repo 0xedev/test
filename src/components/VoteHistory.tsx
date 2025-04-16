@@ -1,12 +1,8 @@
 // src/components/VoteHistory.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  useActiveAccount,
-  useReadContract,
-  useContractEvents,
-} from "thirdweb/react";
+import { useState, useEffect } from "react";
+import { useActiveAccount, useContractEvents } from "thirdweb/react";
 import { prepareEvent } from "thirdweb";
 import { contract } from "@/constants/contract";
 
@@ -32,6 +28,24 @@ export function VoteHistory() {
     events: [preparedEvent],
   });
 
+  // Fetch market info separately
+  const fetchMarketInfo = async (
+    marketId: number
+  ): Promise<{ question: string; optionA: string; optionB: string } | null> => {
+    try {
+      const response = await fetch(`/api/market-info?marketId=${marketId}`);
+      const market = await response.json();
+      return {
+        question: market.question,
+        optionA: market.optionA,
+        optionB: market.optionB,
+      };
+    } catch (error) {
+      console.error("Fetch market info error:", error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (!account || !events) {
       setIsLoading(false);
@@ -45,25 +59,18 @@ export function VoteHistory() {
           events
             .filter((e) => e.args.buyer === account.address)
             .map(async (e) => {
-              const { data: market } = await useReadContract({
-                contract,
-                method:
-                  "function getMarketInfo(uint256 _marketId) view returns (string question, string optionA, string optionB, uint256 endTime, uint8 outcome, uint256 totalOptionAShares, uint256 totalOptionBShares, bool resolved)",
-                params: [e.args.marketId],
-              });
-              // Skip if market data is undefined
+              const market = await fetchMarketInfo(Number(e.args.marketId));
               if (!market) {
                 return null;
               }
               return {
                 marketId: Number(e.args.marketId),
-                option: e.args.isOptionA ? market[1] : market[2],
+                option: e.args.isOptionA ? market.optionA : market.optionB,
                 amount: e.args.amount,
-                marketName: market[0],
+                marketName: market.question,
               };
             })
         );
-        // Filter out null votes and cast to Vote[]
         setVotes(userVotes.filter((vote): vote is Vote => vote !== null));
       } catch (error) {
         console.error("Vote history error:", error);
