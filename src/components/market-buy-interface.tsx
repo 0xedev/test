@@ -1,12 +1,8 @@
 // src/components/market-buy-interface.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  useSendTransaction,
-  useReadContract,
-  useActiveAccount,
-} from "thirdweb/react";
+import { useState } from "react";
+import { useSendTransaction, useActiveAccount } from "thirdweb/react";
 import { prepareContractCall } from "thirdweb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
