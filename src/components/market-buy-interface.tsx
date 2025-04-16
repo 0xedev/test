@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useSendTransaction, useActiveAccount } from "thirdweb/react";
-import { prepareContractCall } from "thirdweb";
+import { prepareContractCall, readContract, getContract } from "thirdweb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,7 +15,28 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { contract } from "@/constants/contract";
-import { useToast } from "@/components/ui/use-toast";
+import { base } from "wagmi/chains";
+import { client } from "@/app/client";
+import { useToast } from "@/hooks/use-toast";
+
+const customBaseChain = {
+  ...base,
+  testnet: undefined,
+  rpc: "https://base-mainnet.g.alchemy.com/v2/jprc9bb4eoqJdv5K71YUZdhKyf20gILa",
+  blockExplorers: [
+    {
+      name: "Basescan",
+      url: "https://basescan.org",
+      apiUrl: "https://api.basescan.org/api",
+    },
+  ],
+};
+
+const tokenContract = getContract({
+  client,
+  chain: customBaseChain,
+  address: "0x55b04F15A1878fa5091D5E35ebceBC06A5EC2F31",
+});
 
 interface Market {
   question: string;
@@ -84,37 +105,79 @@ export function MarketBuyInterface({
     }
 
     try {
-      const tx = prepareContractCall({
+      // Check allowance
+      const allowance = await readContract({
+        contract: tokenContract,
+        method:
+          "function allowance(address owner, address spender) view returns (uint256)",
+        params: [account.address, contract.address],
+      });
+
+      const amountWei = BigInt(numAmount * 10 ** 18); // Assuming 18 decimals
+      if (allowance < amountWei) {
+        const approveTx = prepareContractCall({
+          contract: tokenContract,
+          method: "function approve(address spender, uint256 amount)",
+          params: [contract.address, amountWei],
+        });
+        await sendTransaction(approveTx, {
+          onSuccess: () => {
+            toast({
+              title: "Approved",
+              description: "Tokens approved for voting.",
+            });
+          },
+          onError: (error) => {
+            throw new Error(`Approval failed: ${error.message}`);
+          },
+        });
+      }
+
+      // Vote with retry for 429
+      const voteTx = prepareContractCall({
         contract,
         method:
           "function buyShares(uint256 marketId, bool isOptionA, uint256 amount)",
-        params: [BigInt(marketId), voteOption === "A", BigInt(amount)],
+        params: [BigInt(marketId), voteOption === "A", amountWei],
       });
-      await sendTransaction(tx, {
-        onSuccess: () => {
-          toast({
-            title: "Vote Cast",
-            description: `Successfully voted ${amount} $BSTR on ${
-              voteOption === "A" ? market.optionA : market.optionB
-            }.`,
+
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          await sendTransaction(voteTx, {
+            onSuccess: () => {
+              toast({
+                title: "Vote Cast",
+                description: `Voted ${amount} $BSTR on ${
+                  voteOption === "A" ? market.optionA : market.optionB
+                }.`,
+              });
+              setIsConfirmOpen(false);
+              setAmountA("");
+              setAmountB("");
+            },
+            onError: (error) => {
+              throw error;
+            },
           });
-          setIsConfirmOpen(false);
-          setAmountA("");
-          setAmountB("");
-        },
-        onError: (error) => {
-          toast({
-            title: "Vote Failed",
-            description: error.message,
-            variant: "destructive",
-          });
-        },
-      });
-    } catch (error) {
-      console.error("Vote error:", error);
+          return;
+        } catch (error: any) {
+          if (error.message.includes("429") && retries > 1) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, 2000 * (4 - retries))
+            );
+            retries--;
+            continue;
+          }
+          throw error;
+        }
+      }
+    } catch (error: any) {
       toast({
         title: "Vote Failed",
-        description: "An unexpected error occurred.",
+        description: error.message.includes("0xfb8f41b2")
+          ? "Please approve tokens first."
+          : error.message || "Failed to vote.",
         variant: "destructive",
       });
     }
@@ -175,7 +238,7 @@ export function MarketBuyInterface({
             onClick={() => handleQuickVote("A")}
             disabled={isPending || !account}
           >
-            Quick Vote (10)
+            Quick Vote (100)
           </Button>
         </div>
       </div>
