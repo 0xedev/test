@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useActiveAccount, useContractEvents } from "thirdweb/react";
-import { prepareEvent, readContract } from "thirdweb";
+import { useActiveAccount } from "thirdweb/react";
+import { prepareEvent, readContract, getContractEvents } from "thirdweb";
 import { contract } from "@/constants/contract";
 
 interface Vote {
@@ -23,13 +23,8 @@ export function VoteHistory() {
   const [votes, setVotes] = useState<Vote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const { data: events } = useContractEvents({
-    contract,
-    events: [preparedEvent],
-  });
-
   useEffect(() => {
-    if (!account || !events) {
+    if (!account) {
       setIsLoading(false);
       return;
     }
@@ -37,6 +32,12 @@ export function VoteHistory() {
     const fetchVotes = async () => {
       setIsLoading(true);
       try {
+        const events = await getContractEvents({
+          contract,
+          fromBlock: 0n,
+          toBlock: "latest",
+          events: [preparedEvent],
+        });
         // Get unique market IDs
         const marketIds = [
           ...new Set(
@@ -48,6 +49,11 @@ export function VoteHistory() {
               .map((e) => Number(e.args.marketId))
           ),
         ];
+        if (marketIds.length === 0) {
+          setVotes([]);
+          setIsLoading(false);
+          return;
+        }
 
         // Fetch market info
         const marketInfos = await Promise.all(
@@ -112,7 +118,7 @@ export function VoteHistory() {
     };
 
     fetchVotes();
-  }, [account, events]);
+  }, [account]);
 
   if (!account) {
     return (
@@ -139,7 +145,7 @@ export function VoteHistory() {
           <span>
             {vote.marketName} ({vote.option})
           </span>
-          <span>{Number(vote.amount)} $BSTR</span>
+          <span>{Number(vote.amount) / 1e18} $BSTR</span>
         </li>
       ))}
     </ul>

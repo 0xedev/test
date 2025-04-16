@@ -62,6 +62,10 @@ export async function GET() {
       })
     );
 
+    if (winners.length === 0) {
+      return NextResponse.json([]);
+    }
+
     // Fetch Farcaster usernames for winner addresses
     const addresses = winners.map((w) => w.address);
     const { users } = await neynar.fetchBulkUsersByEthOrSolAddress({

@@ -64,47 +64,142 @@ export function MarketBuyInterface({
   const [amountB, setAmountB] = useState("");
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [voteOption, setVoteOption] = useState<"A" | "B" | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
   const { mutate: sendTransaction, isPending } = useSendTransaction();
 
   const MAX_BET = 1000; // Max 1000 $BSTR per vote
+  const QUICK_VOTE_AMOUNT = "100"; // Standardized quick vote amount
+
+  // Unified validation function
+  const validateAmount = (
+    amount: string
+  ): { valid: boolean; message?: string } => {
+    if (!amount || amount === "") {
+      return { valid: false, message: "Please enter a valid amount." };
+    }
+
+    const numAmount = Number(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      return { valid: false, message: "Amount must be greater than 0." };
+    }
+
+    if (numAmount > MAX_BET) {
+      return { valid: false, message: `Maximum bet is ${MAX_BET} $BSTR.` };
+    }
+
+    return { valid: true };
+  };
 
   const handleVote = (option: "A" | "B", amount: string) => {
-    const numAmount = Number(amount);
-    if (numAmount > MAX_BET) {
+    const validation = validateAmount(amount);
+    if (!validation.valid) {
       toast({
         title: "Error",
-        description: `Maximum bet is ${MAX_BET} $BSTR.`,
+        description: validation.message,
         variant: "destructive",
       });
       return;
     }
+
     setVoteOption(option);
     setIsConfirmOpen(true);
+  };
+
+  const processVoteTransaction = async (amountWei: bigint) => {
+    const voteTx = prepareContractCall({
+      contract,
+      method:
+        "function buyShares(uint256 marketId, bool isOptionA, uint256 amount)",
+      params: [BigInt(marketId), voteOption === "A", amountWei],
+    });
+
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        await sendTransaction(voteTx, {
+          onSuccess: () => {
+            const amount = voteOption === "A" ? amountA : amountB;
+            toast({
+              title: "Vote Cast",
+              description: `Voted ${amount} $BSTR on ${
+                voteOption === "A" ? market.optionA : market.optionB
+              }.`,
+            });
+            setIsConfirmOpen(false);
+            setAmountA("");
+            setAmountB("");
+          },
+          onError: (error) => {
+            // Capture error but don't throw yet so we can retry
+            if (retries <= 1) throw error;
+          },
+        });
+        return; // Success, exit the retry loop
+      } catch (error: unknown) {
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "message" in error &&
+          typeof (error as { message: string }).message === "string" &&
+          (error as { message: string }).message.includes("429") &&
+          retries > 1
+        ) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, 2000 * (4 - retries))
+          );
+          retries--;
+          continue;
+        }
+
+        // If we're here, it's an error that's not retryable
+        let message = "Failed to vote.";
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "message" in error &&
+          typeof (error as { message: string }).message === "string"
+        ) {
+          // Improved error handling with more specific messages
+          const errorMsg = (error as { message: string }).message;
+          if (errorMsg.includes("0xfb8f41b2")) {
+            message =
+              "Insufficient token allowance. Please approve tokens first.";
+          } else if (errorMsg.includes("user rejected")) {
+            message = "Transaction was rejected.";
+          } else {
+            message = errorMsg;
+          }
+        }
+
+        toast({
+          title: "Vote Failed",
+          description: message,
+          variant: "destructive",
+        });
+
+        throw error; // Re-throw to stop the process
+      }
+    }
   };
 
   const confirmVote = async () => {
     if (!account || !voteOption || (!amountA && !amountB)) return;
 
     const amount = voteOption === "A" ? amountA : amountB;
-    const numAmount = Number(amount);
-    if (!amount || numAmount <= 0) {
+    const validation = validateAmount(amount);
+    if (!validation.valid) {
       toast({
         title: "Error",
-        description: "Please enter a valid amount.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (numAmount > MAX_BET) {
-      toast({
-        title: "Error",
-        description: `Maximum bet is ${MAX_BET} $BSTR.`,
+        description: validation.message,
         variant: "destructive",
       });
       return;
     }
 
     try {
+      const numAmount = Number(amount);
+      const amountWei = BigInt(Math.floor(numAmount * 10 ** 18)); // Ensuring integer conversion
+
       // Check allowance
       const allowance = await readContract({
         contract: tokenContract,
@@ -113,86 +208,65 @@ export function MarketBuyInterface({
         params: [account.address, contract.address],
       });
 
-      const amountWei = BigInt(numAmount * 10 ** 18); // Assuming 18 decimals
       if (allowance < amountWei) {
+        // Need approval
+        setIsApproving(true);
+
         const approveTx = prepareContractCall({
           contract: tokenContract,
           method: "function approve(address spender, uint256 amount)",
           params: [contract.address, amountWei],
         });
+
         await sendTransaction(approveTx, {
-          onSuccess: () => {
+          onSuccess: async (result) => {
             toast({
               title: "Approved",
-              description: "Tokens approved for voting.",
+              description: "Tokens approved for voting. Processing vote now...",
             });
+
+            try {
+              // Wait a brief moment for the approval to propagate
+              // This is a best practice but may not be necessary on all chains
+              await new Promise((resolve) => setTimeout(resolve, 2000));
+
+              // Now proceed with the vote transaction
+              await processVoteTransaction(amountWei);
+            } catch (voteError) {
+              console.error("Vote failed after approval:", voteError);
+              // Error toast already shown in processVoteTransaction
+            } finally {
+              setIsApproving(false);
+            }
           },
           onError: (error) => {
-            throw new Error(`Approval failed: ${error.message}`);
+            setIsApproving(false);
+            toast({
+              title: "Approval Failed",
+              description: error.message || "Failed to approve tokens.",
+              variant: "destructive",
+            });
           },
         });
-      }
-
-      // Vote with retry for 429
-      const voteTx = prepareContractCall({
-        contract,
-        method:
-          "function buyShares(uint256 marketId, bool isOptionA, uint256 amount)",
-        params: [BigInt(marketId), voteOption === "A", amountWei],
-      });
-
-      let retries = 3;
-      while (retries > 0) {
-        try {
-          await sendTransaction(voteTx, {
-            onSuccess: () => {
-              toast({
-                title: "Vote Cast",
-                description: `Voted ${amount} $BSTR on ${
-                  voteOption === "A" ? market.optionA : market.optionB
-                }.`,
-              });
-              setIsConfirmOpen(false);
-              setAmountA("");
-              setAmountB("");
-            },
-            onError: (error) => {
-              throw error;
-            },
-          });
-          return;
-        } catch (error: unknown) {
-          if (
-            typeof error === "object" &&
-            error !== null &&
-            "message" in error &&
-            typeof (error as { message: string }).message === "string" &&
-            (error as { message: string }).message.includes("429") &&
-            retries > 1
-          ) {
-            await new Promise((resolve) =>
-              setTimeout(resolve, 2000 * (4 - retries))
-            );
-            retries--;
-            continue;
-          }
-          throw error;
-        }
+      } else {
+        // Already approved, proceed directly to vote
+        await processVoteTransaction(amountWei);
       }
     } catch (error: unknown) {
-      let message = "Failed to vote.";
+      // General error handling for issues outside the specific transaction processes
+      console.error("Transaction error:", error);
+      let message = "Transaction failed.";
       if (
         typeof error === "object" &&
         error !== null &&
         "message" in error &&
         typeof (error as { message: string }).message === "string"
       ) {
-        message = (error as { message: string }).message.includes("0xfb8f41b2")
-          ? "Please approve tokens first."
-          : (error as { message: string }).message;
+        message = (error as { message: string }).message;
       }
+
       toast({
-        title: "Vote Failed",
+        title: "Transaction Failed",
         description: message,
         variant: "destructive",
       });
@@ -200,8 +274,28 @@ export function MarketBuyInterface({
   };
 
   const handleQuickVote = (option: "A" | "B") => {
-    const quickAmount = "100";
-    if (Number(quickAmount) > MAX_BET) {
+    if (option === "A") setAmountA(QUICK_VOTE_AMOUNT);
+    else setAmountB(QUICK_VOTE_AMOUNT);
+    handleVote(option, QUICK_VOTE_AMOUNT);
+  };
+
+  // Improved input handler with validation
+  const handleAmountChange = (
+    value: string,
+    setter: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    // Handle empty input
+    if (value === "") {
+      setter("");
+      return;
+    }
+
+    // Remove leading zeros and non-numeric characters
+    const sanitizedValue =
+      value.replace(/^0+/, "").replace(/[^0-9]/g, "") || "";
+
+    // Check against MAX_BET
+    if (sanitizedValue && Number(sanitizedValue) > MAX_BET) {
       toast({
         title: "Error",
         description: `Maximum bet is ${MAX_BET} $BSTR.`,
@@ -209,9 +303,8 @@ export function MarketBuyInterface({
       });
       return;
     }
-    if (option === "A") setAmountA(quickAmount);
-    else setAmountB(quickAmount);
-    handleVote(option, quickAmount);
+
+    setter(sanitizedValue);
   };
 
   return (
@@ -226,18 +319,7 @@ export function MarketBuyInterface({
             inputMode="numeric"
             placeholder="Enter amount"
             value={amountA}
-            onChange={(e) => {
-              const value = e.target.value.replace(/^0+/, "") || "";
-              if (value && Number(value) > MAX_BET) {
-                toast({
-                  title: "Error",
-                  description: `Maximum bet is ${MAX_BET} $BSTR.`,
-                  variant: "destructive",
-                });
-                return;
-              }
-              setAmountA(value);
-            }}
+            onChange={(e) => handleAmountChange(e.target.value, setAmountA)}
             className="flex-1"
             min="0"
             step="1"
@@ -245,16 +327,16 @@ export function MarketBuyInterface({
           />
           <Button
             onClick={() => handleVote("A", amountA)}
-            disabled={isPending || !account || !amountA}
+            disabled={isPending || isApproving || !account || !amountA}
           >
             Vote
           </Button>
           <Button
             variant="outline"
             onClick={() => handleQuickVote("A")}
-            disabled={isPending || !account}
+            disabled={isPending || isApproving || !account}
           >
-            Quick Vote (100)
+            Quick Vote ({QUICK_VOTE_AMOUNT})
           </Button>
         </div>
       </div>
@@ -268,18 +350,7 @@ export function MarketBuyInterface({
             inputMode="numeric"
             placeholder="Enter amount"
             value={amountB}
-            onChange={(e) => {
-              const value = e.target.value.replace(/^0+/, "") || "";
-              if (value && Number(value) > MAX_BET) {
-                toast({
-                  title: "Error",
-                  description: `Maximum bet is ${MAX_BET} $BSTR.`,
-                  variant: "destructive",
-                });
-                return;
-              }
-              setAmountB(value);
-            }}
+            onChange={(e) => handleAmountChange(e.target.value, setAmountB)}
             className="flex-1"
             min="0"
             step="1"
@@ -287,16 +358,16 @@ export function MarketBuyInterface({
           />
           <Button
             onClick={() => handleVote("B", amountB)}
-            disabled={isPending || !account || !amountB}
+            disabled={isPending || isApproving || !account || !amountB}
           >
             Vote
           </Button>
           <Button
             variant="outline"
             onClick={() => handleQuickVote("B")}
-            disabled={isPending || !account}
+            disabled={isPending || isApproving || !account}
           >
-            Quick Vote (10)
+            Quick Vote ({QUICK_VOTE_AMOUNT})
           </Button>
         </div>
       </div>
@@ -305,17 +376,21 @@ export function MarketBuyInterface({
           <DialogHeader>
             <DialogTitle>Confirm Your Vote</DialogTitle>
             <DialogDescription>
-              You’re voting {voteOption === "A" ? amountA : amountB} $BSTR on “
-              {voteOption === "A" ? market.optionA : market.optionB}” for market
-              “{market.question}”. Please confirm.
+              You're voting {voteOption === "A" ? amountA : amountB} $BSTR on "
+              {voteOption === "A" ? market.optionA : market.optionB}" for market
+              "{market.question}". Please confirm.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsConfirmOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={confirmVote} disabled={isPending}>
-              {isPending ? "Processing..." : "Confirm Vote"}
+            <Button onClick={confirmVote} disabled={isPending || isApproving}>
+              {isApproving
+                ? "Approving..."
+                : isPending
+                ? "Processing..."
+                : "Confirm Vote"}
             </Button>
           </DialogFooter>
         </DialogContent>
