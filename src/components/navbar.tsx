@@ -1,12 +1,23 @@
 // src/components/navbar.tsx
-import React from "react"; // Removed unused `useEffect`
-import { ConnectButton, lightTheme } from "thirdweb/react"; // Removed `useActiveAccount`
+"use client";
+
+import React, { useState } from "react";
+import { ConnectButton, lightTheme } from "thirdweb/react";
 import { client } from "@/app/client";
 import { base } from "wagmi/chains";
 import { createWallet } from "thirdweb/wallets";
-import { ClaimTokensButton } from "./ClaimTokensButton";
 import { WagmiConfig, createConfig, http } from "wagmi";
 import { farcasterFrame } from "@farcaster/frame-wagmi-connector";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { ClaimTokensButton } from "./ClaimTokensButton";
 
 const wagmiConfig = createConfig({
   chains: [base],
@@ -38,12 +49,20 @@ const customBase = {
 };
 
 export function Navbar() {
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+
   return (
     <WagmiConfig config={wagmiConfig}>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Forecast</h1>
-        <div className="items-center flex gap-2">
-          <ClaimTokensButton />
+      <div className="flex justify-between items-center mb-4 px-4">
+        <h1 className="text-xl font-bold">Forecast</h1>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsOnboardingOpen(true)}
+          >
+            Get Started
+          </Button>
           <ConnectButton
             client={client}
             theme={lightTheme()}
@@ -51,8 +70,12 @@ export function Navbar() {
             wallets={wallets}
             connectModal={{ size: "compact" }}
             connectButton={{
-              style: { fontSize: "0.75rem", height: "2.5rem" },
-              label: "Sign In",
+              style: {
+                fontSize: "0.75rem",
+                height: "2rem",
+                padding: "0 0.5rem",
+              },
+              label: "Wallet",
             }}
             detailsButton={{
               displayBalanceToken: {
@@ -60,6 +83,18 @@ export function Navbar() {
               },
             }}
           />
+          <Dialog open={isOnboardingOpen} onOpenChange={setIsOnboardingOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Welcome to Forecast!</DialogTitle>
+                <DialogDescription>
+                  To vote on markets, claim your $BSTR tokens. Connect your
+                  wallet if you haven’t, then click below to claim.
+                </DialogDescription>
+              </DialogHeader>
+              <ClaimTokensButton />
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </WagmiConfig>

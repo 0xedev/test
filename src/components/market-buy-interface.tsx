@@ -1,337 +1,250 @@
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { useState, useRef, useEffect } from "react";
-import { useActiveAccount, useSendAndConfirmTransaction } from "thirdweb/react";
-import { prepareContractCall, readContract, toWei } from "thirdweb";
-import { contract, tokenContract } from "@/constants/contract";
-import { approve } from "thirdweb/extensions/erc20";
-import { Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+// src/components/market-buy-interface.tsx
+"use client";
+
+import { useState, useEffect } from "react";
+import {
+  useSendTransaction,
+  useReadContract,
+  useActiveAccount,
+} from "thirdweb/react";
+import { prepareContractCall } from "thirdweb";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { contract } from "@/constants/contract";
 import { useToast } from "@/components/ui/use-toast";
 
-// Types for the component props
-interface MarketBuyInterfaceProps {
-  marketId: number;
-  market: {
-    optionA: string;
-    optionB: string;
-    question: string;
-  };
+interface Market {
+  question: string;
+  optionA: string;
+  optionB: string;
+  endTime: bigint;
+  outcome: number;
+  totalOptionAShares: bigint;
+  totalOptionBShares: bigint;
+  resolved: boolean;
 }
 
-// Type aliases for better readability
-type BuyingStep = "initial" | "allowance" | "confirm";
-type Option = "A" | "B" | null;
+interface MarketBuyInterfaceProps {
+  marketId: number;
+  market: Market;
+}
 
 export function MarketBuyInterface({
   marketId,
   market,
 }: MarketBuyInterfaceProps) {
-  // Blockchain interactions
   const account = useActiveAccount();
-  const { mutateAsync: mutateTransaction } = useSendAndConfirmTransaction();
   const { toast } = useToast();
+  const [amountA, setAmountA] = useState("");
+  const [amountB, setAmountB] = useState("");
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [voteOption, setVoteOption] = useState<"A" | "B" | null>(null);
+  const { mutate: sendTransaction, isPending } = useSendTransaction();
 
-  // UI state management
-  const [isBuying, setIsBuying] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
-  const [containerHeight, setContainerHeight] = useState("auto");
-  const contentRef = useRef<HTMLDivElement>(null);
+  const MAX_BET = 1000; // Max 1000 $BSTR per vote
 
-  // Transaction state
-  const [selectedOption, setSelectedOption] = useState<Option>(null);
-  const [amount, setAmount] = useState(0);
-  const [buyingStep, setBuyingStep] = useState<BuyingStep>("initial");
-  const [isApproving, setIsApproving] = useState(false);
-  const [isConfirming, setIsConfirming] = useState(false);
-
-  // Add to state variables
-  const [error, setError] = useState<string | null>(null);
-
-  // Update container height when content changes
-  useEffect(() => {
-    if (contentRef.current) {
-      setTimeout(() => {
-        setContainerHeight(`${contentRef.current?.offsetHeight || 0}px`);
-      }, 0);
-    }
-  }, [isBuying, buyingStep, isVisible, error]);
-
-  // Handlers for user interactions
-  const handleBuy = (option: "A" | "B") => {
-    setIsVisible(false);
-    setTimeout(() => {
-      setIsBuying(true);
-      setSelectedOption(option);
-      setIsVisible(true);
-    }, 200); // Match transition duration
-  };
-
-  const handleCancel = () => {
-    setIsVisible(false);
-    setTimeout(() => {
-      setIsBuying(false);
-      setBuyingStep("initial");
-      setSelectedOption(null);
-      setAmount(0);
-      setError(null);
-      setIsVisible(true);
-    }, 200);
-  };
-
-  // Check if user needs to approve token spending
-  const checkApproval = async () => {
-    if (amount <= 0) {
-      setError("Amount must be greater than 0");
-      return;
-    }
-    setError(null);
-
-    try {
-      const userAllowance = await readContract({
-        contract: tokenContract,
-        method:
-          "function allowance(address owner, address spender) view returns (uint256)",
-        params: [account?.address as string, contract.address],
-      });
-
-      setBuyingStep(
-        userAllowance < BigInt(toWei(amount.toString()))
-          ? "allowance"
-          : "confirm"
-      );
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  // Handle token approval transaction
-  const handleSetApproval = async () => {
-    setIsApproving(true);
-    try {
-      const tx = await approve({
-        contract: tokenContract,
-        spender: contract.address,
-        amount: amount,
-      });
-      await mutateTransaction(tx);
-      setBuyingStep("confirm");
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsApproving(false);
-    }
-  };
-
-  // Handle share purchase transaction
-  const handleConfirm = async () => {
-    if (!selectedOption || amount <= 0) {
-      setError("Must select an option and enter an amount greater than 0");
-      return;
-    }
-
-    setIsConfirming(true);
-    try {
-      const tx = await prepareContractCall({
-        contract,
-        method:
-          "function buyShares(uint256 _marketId, bool _isOptionA, uint256 _amount)",
-        params: [
-          BigInt(marketId),
-          selectedOption === "A",
-          BigInt(toWei(amount.toString())),
-        ],
-      });
-      await mutateTransaction(tx);
-
-      // Show success toast
+  const handleVote = (option: "A" | "B", amount: string) => {
+    const numAmount = Number(amount);
+    if (numAmount > MAX_BET) {
       toast({
-        title: "Purchase Successful!",
-        description: `You bought ${amount} ${
-          selectedOption === "A" ? market.optionA : market.optionB
-        } shares`,
-        duration: 5000, // 5 seconds
-      });
-
-      handleCancel();
-    } catch (error) {
-      console.error(error);
-      // Optionally show error toast
-      toast({
-        title: "Purchase Failed",
-        description: "There was an error processing your purchase",
+        title: "Error",
+        description: `Maximum bet is ${MAX_BET} $BSTR.`,
         variant: "destructive",
       });
-    } finally {
-      setIsConfirming(false);
+      return;
+    }
+    setVoteOption(option);
+    setIsConfirmOpen(true);
+  };
+
+  const confirmVote = async () => {
+    if (!account || !voteOption || (!amountA && !amountB)) return;
+
+    const amount = voteOption === "A" ? amountA : amountB;
+    const numAmount = Number(amount);
+    if (!amount || numAmount <= 0) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid amount.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (numAmount > MAX_BET) {
+      toast({
+        title: "Error",
+        description: `Maximum bet is ${MAX_BET} $BSTR.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const tx = prepareContractCall({
+        contract,
+        method:
+          "function buyShares(uint256 marketId, bool isOptionA, uint256 amount)",
+        params: [BigInt(marketId), voteOption === "A", BigInt(amount)],
+      });
+      await sendTransaction(tx, {
+        onSuccess: () => {
+          toast({
+            title: "Vote Cast",
+            description: `Successfully voted ${amount} $BSTR on ${
+              voteOption === "A" ? market.optionA : market.optionB
+            }.`,
+          });
+          setIsConfirmOpen(false);
+          setAmountA("");
+          setAmountB("");
+        },
+        onError: (error) => {
+          toast({
+            title: "Vote Failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        },
+      });
+    } catch (error) {
+      console.error("Vote error:", error);
+      toast({
+        title: "Vote Failed",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
     }
   };
 
-  // Render the component
+  const handleQuickVote = (option: "A" | "B") => {
+    const quickAmount = "100";
+    if (Number(quickAmount) > MAX_BET) {
+      toast({
+        title: "Error",
+        description: `Maximum bet is ${MAX_BET} $BSTR.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (option === "A") setAmountA(quickAmount);
+    else setAmountB(quickAmount);
+    handleVote(option, quickAmount);
+  };
+
   return (
-    <div
-      className="relative transition-[height] duration-200 ease-in-out overflow-hidden"
-      style={{ height: containerHeight }}
-    >
-      <div
-        ref={contentRef}
-        className={cn(
-          "w-full transition-all duration-200 ease-in-out",
-          isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-        )}
-      >
-        {!isBuying ? (
-          // Initial option selection buttons
-          <div className="flex justify-between gap-4 mb-4">
-            <Button
-              className="flex-1"
-              onClick={() => handleBuy("A")}
-              aria-label={`Vote ${market.optionA} for "${market.question}"`}
-              disabled={!account}
-            >
-              {market.optionA}
-            </Button>
-            <Button
-              className="flex-1"
-              onClick={() => handleBuy("B")}
-              aria-label={`Vote ${market.optionB} for "${market.question}"`}
-              disabled={!account}
-            >
-              {market.optionB}
-            </Button>
-          </div>
-        ) : (
-          // Buy interface with different steps
-          <div className="flex flex-col mb-4">
-            {buyingStep === "allowance" ? (
-              // Approval step
-              <div className="flex flex-col border-2 border-gray-200 rounded-lg p-4">
-                <h2 className="text-lg font-bold mb-4">Approval Needed</h2>
-                <p className="mb-4">
-                  You need to approve the transaction before proceeding.
-                </p>
-                <div className="flex justify-end">
-                  <Button
-                    onClick={handleSetApproval}
-                    className="mb-2"
-                    disabled={isApproving}
-                  >
-                    {isApproving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Approving...
-                      </>
-                    ) : (
-                      "Set Approval"
-                    )}
-                  </Button>
-                  <Button
-                    onClick={handleCancel}
-                    className="ml-2"
-                    variant="outline"
-                    disabled={isApproving}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : buyingStep === "confirm" ? (
-              // Confirmation step
-              <div className="flex flex-col border-2 border-gray-200 rounded-lg p-4">
-                <h2 className="text-lg font-bold mb-4">Confirm Transaction</h2>
-                <p className="mb-4">
-                  You are about to buy{" "}
-                  <span className="font-bold">
-                    {amount}{" "}
-                    {selectedOption === "A" ? market.optionA : market.optionB}
-                  </span>{" "}
-                  share(s).
-                </p>
-                <div className="flex justify-end">
-                  <Button
-                    onClick={handleConfirm}
-                    className="mb-2"
-                    disabled={isConfirming}
-                  >
-                    {isConfirming ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Confirming...
-                      </>
-                    ) : (
-                      "Confirm"
-                    )}
-                  </Button>
-                  <Button
-                    onClick={handleCancel}
-                    className="ml-2"
-                    variant="outline"
-                    disabled={isConfirming}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              // Amount input step
-              <div className="flex flex-col">
-                <span className="text-xs text-gray-500 mb-1">
-                  {`1 ${
-                    selectedOption === "A" ? market.optionA : market.optionB
-                  } = 1 BUSTER`}
-                </span>
-                <div className="flex flex-col gap-1 mb-4">
-                  <div className="flex items-center gap-2 overflow-visible">
-                    <div className="flex-grow relative">
-                      <Input
-                        type="number"
-                        min="0"
-                        step="1"
-                        placeholder="Enter amount"
-                        value={amount}
-                        onChange={(e) => {
-                          const value = Math.max(0, Number(e.target.value));
-                          setAmount(value);
-                          setError(null);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "-" || e.key === "e") {
-                            e.preventDefault();
-                          }
-                        }}
-                        className={cn(
-                          "w-full",
-                          error && "border-red-500 focus-visible:ring-red-500"
-                        )}
-                      />
-                    </div>
-                    <span className="font-bold whitespace-nowrap">
-                      {selectedOption === "A" ? market.optionA : market.optionB}
-                    </span>
-                  </div>
-                  <div className="min-h-[20px]">
-                    {error && (
-                      <span className="text-sm text-red-500">{error}</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <Button onClick={checkApproval} className="flex-1">
-                    Confirm
-                  </Button>
-                  <Button
-                    onClick={handleCancel}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-1">
+          {market.optionA}
+        </label>
+        <div className="flex gap-2">
+          <Input
+            type="number"
+            inputMode="numeric"
+            placeholder="Enter amount"
+            value={amountA}
+            onChange={(e) => {
+              const value = e.target.value.replace(/^0+/, "") || "";
+              if (value && Number(value) > MAX_BET) {
+                toast({
+                  title: "Error",
+                  description: `Maximum bet is ${MAX_BET} $BSTR.`,
+                  variant: "destructive",
+                });
+                return;
+              }
+              setAmountA(value);
+            }}
+            className="flex-1"
+            min="0"
+            step="1"
+            max={MAX_BET}
+          />
+          <Button
+            onClick={() => handleVote("A", amountA)}
+            disabled={isPending || !account || !amountA}
+          >
+            Vote
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => handleQuickVote("A")}
+            disabled={isPending || !account}
+          >
+            Quick Vote (10)
+          </Button>
+        </div>
       </div>
+      <div>
+        <label className="block text-sm font-medium mb-1">
+          {market.optionB}
+        </label>
+        <div className="flex gap-2">
+          <Input
+            type="number"
+            inputMode="numeric"
+            placeholder="Enter amount"
+            value={amountB}
+            onChange={(e) => {
+              const value = e.target.value.replace(/^0+/, "") || "";
+              if (value && Number(value) > MAX_BET) {
+                toast({
+                  title: "Error",
+                  description: `Maximum bet is ${MAX_BET} $BSTR.`,
+                  variant: "destructive",
+                });
+                return;
+              }
+              setAmountB(value);
+            }}
+            className="flex-1"
+            min="0"
+            step="1"
+            max={MAX_BET}
+          />
+          <Button
+            onClick={() => handleVote("B", amountB)}
+            disabled={isPending || !account || !amountB}
+          >
+            Vote
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => handleQuickVote("B")}
+            disabled={isPending || !account}
+          >
+            Quick Vote (10)
+          </Button>
+        </div>
+      </div>
+      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Your Vote</DialogTitle>
+            <DialogDescription>
+              You’re voting {voteOption === "A" ? amountA : amountB} $BSTR on “
+              {voteOption === "A" ? market.optionA : market.optionB}” for market
+              “{market.question}”. Please confirm.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmVote} disabled={isPending}>
+              {isPending ? "Processing..." : "Confirm Vote"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

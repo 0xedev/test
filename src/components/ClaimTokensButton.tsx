@@ -1,28 +1,74 @@
 // src/components/ClaimTokensButton.tsx
 "use client";
 
-import React, { useState } from "react";
-import { useActiveAccount, useSendTransaction } from "thirdweb/react";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { getContract, prepareContractCall } from "thirdweb";
+import { useState, useEffect } from "react";
+import {
+  useActiveAccount,
+  useSendTransaction,
+  useContractEvents,
+} from "thirdweb/react";
+import {
+  prepareEvent,
+  readContract,
+  getContract,
+  prepareContractCall,
+} from "thirdweb";
+import { base } from "wagmi/chains";
 import { client } from "@/app/client";
-import { base } from "thirdweb/chains";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 
-const contract = getContract({
+const customBaseChain = {
+  ...base,
+  testnet: undefined,
+  rpc: "https://mainnet.base.org",
+  blockExplorers: [
+    {
+      name: "Basescan",
+      url: "https://basescan.org",
+      apiUrl: "https://api.basescan.org/api",
+    },
+  ],
+};
+
+const tokenContract = getContract({
   client,
-  chain: base,
+  chain: customBaseChain,
   address: "0x55b04F15A1878fa5091D5E35ebceBC06A5EC2F31",
+});
+
+const idRegistryContract = getContract({
+  client,
+  chain: customBaseChain,
+  address: "0x00000000Fc6c5F01Fc30151999387Bb99A9f489b", // Farcaster IdRegistry
+});
+
+const claimedEvent = prepareEvent({
+  signature: "event Claimed(address indexed claimant, uint256 amount)",
 });
 
 export function ClaimTokensButton() {
   const account = useActiveAccount();
-  const [isClaimLoading, setIsClaimLoading] = useState(false);
-  const { toast } = useToast();
-  const { mutate: sendTransaction, isPending } = useSendTransaction();
-  const [hasClaimed, setHasClaimed] = useState(false);
-  const handleClaimTokens = async () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
+  const { mutate: sendTransaction } = useSendTransaction();
+
+  // Fetch Claimed events
+  const { data: claimEvents } = useContractEvents({
+    contract: tokenContract,
+    events: [claimedEvent],
+  });
+
+  // Track FID claim status
+  useEffect(() => {
+    if (!account || !claimEvents) {
+      setIsChecking(false);
+      return;
+    }
+    setIsChecking(false);
+  }, [account, claimEvents]);
+
+  const handleClaim = async () => {
     if (!account) {
       toast({
         title: "Error",
@@ -32,67 +78,78 @@ export function ClaimTokensButton() {
       return;
     }
 
-    setIsClaimLoading(true);
+    setIsLoading(true);
     try {
-      const transaction = prepareContractCall({
-        contract,
-        method: "function claim() external",
-        params: [],
+      // Get FID
+      const fid = await readContract({
+        contract: idRegistryContract,
+        method: "function idOf(address) view returns (uint256)",
+        params: [account.address],
       });
 
-      await sendTransaction(transaction, {
+      if (fid === BigInt(0)) {
+        throw new Error("No Farcaster ID linked to this wallet.");
+      }
+
+      // Check Claimed events for this wallet
+      const walletHasClaimed = claimEvents?.some(
+        (e) => e.args.claimant.toLowerCase() === account.address.toLowerCase()
+      );
+
+      // Fallback: Check localStorage
+      const claimedFids = JSON.parse(
+        localStorage.getItem("claimedFids") || "[]"
+      );
+      if (walletHasClaimed || claimedFids.includes(Number(fid))) {
+        throw new Error("This Farcaster ID has already claimed $BSTR.");
+      }
+
+      // Prepare claim transaction
+      const preparedTx = prepareContractCall({
+        contract: tokenContract,
+        method: "function claim()", // Verify this matches your contract
+        params: [],
+        value: BigInt(0),
+      });
+
+      await sendTransaction(preparedTx, {
         onSuccess: () => {
+          // Mark FID as claimed
+          localStorage.setItem(
+            "claimedFids",
+            JSON.stringify([...claimedFids, Number(fid)])
+          );
+          localStorage.setItem("hasSeenOnboarding", "true"); // Sync with popup
           toast({
-            title: "Tokens Claimed!",
-            description: "You've claimed 5000 BUSTER tokens.",
+            title: "Success",
+            description: "Claimed 5,000 $BSTR!",
           });
-          setHasClaimed(true);
         },
         onError: (error) => {
-          let message = "Transaction failed.";
-          if (error.message.includes("revert"))
-            message = "Already claimed or limit reached.";
-          toast({
-            title: "Claim Failed",
-            description: message,
-            variant: "destructive",
-          });
+          throw error;
         },
       });
-    } catch (error: unknown) {
-      console.error("Claim error:", error);
+    } catch (error: any) {
       toast({
-        title: "Claim Failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "An unexpected error occurred.",
+        title: "Error",
+        description: error.message || "Failed to claim $BSTR.",
         variant: "destructive",
       });
     } finally {
-      setIsClaimLoading(false);
+      setIsLoading(false);
     }
   };
 
-  if (!account || hasClaimed) {
-    return null;
-  }
-
   return (
     <Button
-      onClick={handleClaimTokens}
-      disabled={isClaimLoading || isPending}
-      variant="outline"
-      className="px-3 py-1 text-sm"
+      onClick={handleClaim}
+      disabled={isLoading || !account || isChecking}
     >
-      {isClaimLoading || isPending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Claiming...
-        </>
-      ) : (
-        "Claim Tokens"
-      )}
+      {isLoading
+        ? "Claiming..."
+        : isChecking
+        ? "Checking..."
+        : "Claim 5,000 $BSTR"}
     </Button>
   );
 }
