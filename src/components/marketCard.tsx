@@ -1,4 +1,3 @@
-// src/components/marketCard.tsx
 import {
   Card,
   CardContent,
@@ -16,11 +15,15 @@ import { MarketPending } from "./market-pending";
 import { MarketBuyInterface } from "./market-buy-interface";
 import { MarketSharesDisplay } from "./market-shares-display";
 
+// Props for the MarketCard component
+// index is the market id
+// filter is the filter to apply to the market
 interface MarketCardProps {
   index: number;
   filter: "active" | "pending" | "resolved";
 }
 
+// Interface for the market data
 interface Market {
   question: string;
   optionA: string;
@@ -32,13 +35,17 @@ interface Market {
   resolved: boolean;
 }
 
+// Interface for the shares balance
 interface SharesBalance {
   optionAShares: bigint;
   optionBShares: bigint;
 }
 
 export function MarketCard({ index, filter }: MarketCardProps) {
+  // Get the active account
   const account = useActiveAccount();
+
+  // Get the market data
   const { data: marketData, isLoading: isLoadingMarketData } = useReadContract({
     contract,
     method:
@@ -46,6 +53,7 @@ export function MarketCard({ index, filter }: MarketCardProps) {
     params: [BigInt(index)],
   });
 
+  // Parse the market data
   const market: Market | undefined = marketData
     ? {
         question: marketData[0],
@@ -59,13 +67,15 @@ export function MarketCard({ index, filter }: MarketCardProps) {
       }
     : undefined;
 
+  // Get the shares balance
   const { data: sharesBalanceData } = useReadContract({
     contract,
     method:
-      "function getSharesBalance(uint256 _marketId, address _user) view returns (uint256 optionAShares, uint256 optionBShares)",
-    params: [BigInt(index), account?.address || "0x0"],
+      "function getShareBalance(uint256 _marketId, address _user) view returns (uint256 optionAShares, uint256 optionBShares)",
+    params: [BigInt(index), account?.address as string],
   });
 
+  // Parse the shares balance
   const sharesBalance: SharesBalance | undefined = sharesBalanceData
     ? {
         optionAShares: sharesBalanceData[0],
@@ -73,12 +83,15 @@ export function MarketCard({ index, filter }: MarketCardProps) {
       }
     : undefined;
 
-  const isExpired =
-    market && new Date(Number(market.endTime) * 1000) < new Date();
+  // Check if the market is expired
+  const isExpired = new Date(Number(market?.endTime) * 1000) < new Date();
+  // Check if the market is resolved
   const isResolved = market?.resolved;
 
+  // Check if the market should be shown
   const shouldShow = () => {
     if (!market) return false;
+
     switch (filter) {
       case "active":
         return !isExpired;
@@ -91,6 +104,7 @@ export function MarketCard({ index, filter }: MarketCardProps) {
     }
   };
 
+  // If the market should not be shown, return null
   if (!shouldShow()) {
     return null;
   }
@@ -114,19 +128,19 @@ export function MarketCard({ index, filter }: MarketCardProps) {
                 totalOptionBShares={market.totalOptionBShares}
               />
             )}
-            {isExpired ? (
-              isResolved ? (
+            {new Date(Number(market?.endTime) * 1000) < new Date() ? (
+              market?.resolved ? (
                 <MarketResolved
                   marketId={index}
-                  outcome={market!.outcome}
-                  optionA={market!.optionA}
-                  optionB={market!.optionB}
+                  outcome={market.outcome}
+                  optionA={market.optionA}
+                  optionB={market.optionB}
                 />
               ) : (
                 <MarketPending />
               )
             ) : (
-              market && <MarketBuyInterface marketId={index} market={market} />
+              <MarketBuyInterface marketId={index} market={market!} />
             )}
           </CardContent>
           <CardFooter>
