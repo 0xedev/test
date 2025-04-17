@@ -62,7 +62,7 @@ export function VoteHistory() {
               const market = await readContract({
                 contract,
                 method:
-                  "function getMarketInfo(uint256 marketId) view returns (string question, string optionA, string optionB, uint256 endTime, uint8 outcome, uint256 totalOptionAShares, uint256 totalOptionBShares, bool resolved)",
+                  "function getMarketInfo(uint256 _marketId) view returns (string question, string optionA, string optionB, uint256 endTime, uint8 outcome, uint256 totalOptionAShares, uint256 totalOptionBShares, bool resolved)",
                 params: [BigInt(marketId)],
               });
               return {

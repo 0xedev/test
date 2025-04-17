@@ -150,7 +150,7 @@ export function EnhancedPredictionMarketDashboard() {
                   </TabsList>
                   <TabsContent value="pending">
                     <p className="text-center text-gray-500 mb-4">
-                      Pending markets are ended but not yet resolved.
+                      Pending markets are over but not yet resolved.
                     </p>
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                       {Array.from(
