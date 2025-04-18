@@ -52,7 +52,7 @@ export default function MarketTime({ endTime, className }: MarketTimeProps) {
   return (
     <div
       className={cn(
-        "text-xs px-2 py-1 rounded-md bg-gradient-to-r from-blue-50 to-indigo-100 border border-indigo-200 flex items-center shadow-sm",
+        "text-xs px-2 py-1 rounded-md bg-gradient-to-r from-grey-50 to-black-100 border border-white-200 flex items-center shadow-sm",
         className
       )}
     >
