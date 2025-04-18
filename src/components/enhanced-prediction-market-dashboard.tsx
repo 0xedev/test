@@ -202,7 +202,7 @@ export function EnhancedPredictionMarketDashboard() {
                         <span>
                           {idx + 1}. {entry.username} (FID: {entry.fid})
                         </span>
-                        <span>{entry.winnings} BET</span>
+                        <span>{entry.winnings} BSTR</span>
                       </li>
                     ))}
                   </ul>

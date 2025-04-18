@@ -30,7 +30,7 @@
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
     "thirdweb": "^5.64.2",
-    "viem": "^2.26.3",
+    "viem": "^2.27.2",
     "wagmi": "^2.14.16"
   },
   "devDependencies": {
