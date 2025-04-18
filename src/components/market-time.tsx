@@ -39,12 +39,12 @@ export default function MarketTime({ endTime, className }: MarketTimeProps) {
     return (
       <div
         className={cn(
-          "text-xs px-1.5 py-0.5 rounded-sm bg-red-100 text-red-800 border border-red-200 flex items-center",
+          "text-xs px-2 py-1 rounded-md bg-gradient-to-r from-red-100 to-red-200 text-red-800 border border-red-300 flex items-center shadow-sm",
           className
         )}
       >
-        <span className="h-1 w-1 bg-red-500 rounded-full mr-1"></span>
-        Ended
+        <span className="h-1.5 w-1.5 bg-red-500 animate-pulse rounded-full mr-1.5"></span>
+        <span className="font-medium">Ended</span>
       </div>
     );
   }
@@ -52,15 +52,33 @@ export default function MarketTime({ endTime, className }: MarketTimeProps) {
   return (
     <div
       className={cn(
-        "text-xs px-1.5 py-0.5 rounded-sm bg-gray-50 border border-gray-200 flex items-center",
+        "text-xs px-2 py-1 rounded-md bg-gradient-to-r from-blue-50 to-indigo-100 border border-indigo-200 flex items-center shadow-sm",
         className
       )}
     >
-      <span className="text-gray-500 mr-1">Ends:</span>
-      {timeLeft.days > 0 && <span className="mr-1">{timeLeft.days}d</span>}
-      <span className="mr-1">{String(timeLeft.hours).padStart(2, "0")}h</span>
-      <span className="mr-1">{String(timeLeft.minutes).padStart(2, "0")}m</span>
-      <span>{String(timeLeft.seconds).padStart(2, "0")}s</span>
+      <span className="text-indigo-500 font-medium mr-1.5">⏱</span>
+      <span className="text-indigo-600 font-medium mr-1.5">Ends:</span>
+      {timeLeft.days > 0 && <TimeUnit value={timeLeft.days} unit="d" />}
+      <TimeUnit value={timeLeft.hours} unit="h" />
+      <TimeUnit value={timeLeft.minutes} unit="m" />
+      <TimeUnit value={timeLeft.seconds} unit="s" isLast={true} />
     </div>
   );
 }
+
+const TimeUnit = ({
+  value,
+  unit,
+  isLast = false,
+}: {
+  value: number;
+  unit: string;
+  isLast?: boolean;
+}) => (
+  <span className={cn("flex items-center", !isLast && "mr-1")}>
+    <span className="font-bold text-indigo-800">
+      {String(value).padStart(2, "0")}
+    </span>
+    <span className="text-indigo-500">{unit}</span>
+  </span>
+);
