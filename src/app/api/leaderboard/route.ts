@@ -77,6 +77,7 @@ export async function GET() {
 
     const blockRange = 10000n; // Max 10,000 blocks per request
     let fromBlock = DEPLOYMENT_BLOCK;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const allEvents: any[] = [];
 
     while (fromBlock <= latestBlock) {
@@ -135,6 +136,7 @@ export async function GET() {
     // Fetch Farcaster usernames
     console.log("Fetching Farcaster users...");
     const addresses = winners.map((w) => w.address);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let users: any[] = [];
     if (addresses.length > 0) {
       try {

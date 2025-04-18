@@ -46,6 +46,7 @@ export function VoteHistory() {
         const DEPLOYMENT_BLOCK = 28965072n;
         const blockRange = 10000n;
         let fromBlock = DEPLOYMENT_BLOCK;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const allEvents: any[] = [];
 
         console.log("Fetching SharesPurchased events...");
