@@ -8,7 +8,7 @@ import {
 import { useActiveAccount, useReadContract } from "thirdweb/react";
 import { contract } from "@/constants/contract";
 import { MarketProgress } from "./market-progress";
-import { MarketTime } from "./market-time";
+import MarketTime from "./market-time";
 import { MarketCardSkeleton } from "./market-card-skeleton";
 import { MarketResolved } from "./market-resolved";
 import { MarketPending } from "./market-pending";
