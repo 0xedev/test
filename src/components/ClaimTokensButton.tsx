@@ -13,6 +13,7 @@ import {
   getContract,
   prepareContractCall,
 } from "thirdweb";
+import { getRpcClient, eth_getTransactionReceipt } from "thirdweb/rpc";
 import { base } from "wagmi/chains";
 import { client } from "@/app/client";
 import { Button } from "@/components/ui/button";
@@ -51,22 +52,23 @@ export function ClaimTokensButton() {
   const account = useActiveAccount();
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
-  const { mutate: sendTransaction } = useSendTransaction();
+  const { mutateAsync: sendTransaction } = useSendTransaction();
 
-  // Fetch Claimed events
-  const { data: claimEvents } = useContractEvents({
+  const { data: claimEvents, isLoading: eventsLoading } = useContractEvents({
     contract: tokenContract,
     events: [claimedEvent],
+    watch: true, // auto-refreshes on new blocks
   });
 
-  // Track FID claim status
   useEffect(() => {
-    if (!account || !claimEvents) {
+    if (!account) {
       setIsChecking(false);
       return;
     }
+    if (eventsLoading) return; // wait until events have loaded
+
     setIsChecking(false);
-  }, [account, claimEvents]);
+  }, [account, eventsLoading]);
 
   const handleClaim = async () => {
     if (!account) {
@@ -80,7 +82,7 @@ export function ClaimTokensButton() {
 
     setIsLoading(true);
     try {
-      // Get FID
+      // Retrieve Farcaster ID for wallet address
       const fid = await readContract({
         contract: idRegistryContract,
         method: "function idOf(address) view returns (uint256)",
@@ -91,16 +93,19 @@ export function ClaimTokensButton() {
         throw new Error("No Farcaster ID linked to this wallet.");
       }
 
-      // Check Claimed events for this wallet
+      // Check past events to see if this wallet has already claimed
       const walletHasClaimed = claimEvents?.some(
-        (e) => e.args.claimant.toLowerCase() === account.address.toLowerCase()
+        (e) => e.args?.claimant?.toLowerCase() === account.address.toLowerCase()
       );
 
-      // Fallback: Check localStorage
+      // Check local storage for FID to prevent duplicates
       const claimedFids = JSON.parse(
         localStorage.getItem("claimedFids") || "[]"
       );
-      if (walletHasClaimed || claimedFids.includes(Number(fid))) {
+      const hasAlreadyClaimed =
+        walletHasClaimed || claimedFids.map(BigInt).includes(fid);
+
+      if (hasAlreadyClaimed) {
         throw new Error("This Farcaster ID has already claimed $BSTR.");
       }
 
@@ -112,22 +117,30 @@ export function ClaimTokensButton() {
         value: BigInt(0),
       });
 
-      await sendTransaction(preparedTx, {
-        onSuccess: () => {
-          // Mark FID as claimed
-          localStorage.setItem(
-            "claimedFids",
-            JSON.stringify([...claimedFids, Number(fid)])
-          );
-          localStorage.setItem("hasSeenOnboarding", "true"); // Sync with popup
-          toast({
-            title: "Success",
-            description: "Claimed 5,000 $BSTR!",
-          });
-        },
-        onError: (error) => {
-          throw error;
-        },
+      // Send transaction
+      const txResult = await sendTransaction(preparedTx);
+
+      // Fetch transaction receipt using the transaction hash
+      const rpcRequest = getRpcClient({ client, chain: customBaseChain });
+      const receipt = await eth_getTransactionReceipt(rpcRequest, {
+        hash: txResult.transactionHash,
+      });
+
+      // Check status if available
+      if (!receipt || parseInt(receipt.status, 16) !== 1) {
+        throw new Error("Transaction failed or was reverted.");
+      }
+
+      // Update local storage after successful claim
+      localStorage.setItem(
+        "claimedFids",
+        JSON.stringify([...claimedFids, Number(fid)])
+      );
+      localStorage.setItem("hasSeenOnboarding", "true");
+
+      toast({
+        title: "Success",
+        description: "Claimed 5,000 $BSTR!",
       });
     } catch (error: unknown) {
       toast({
