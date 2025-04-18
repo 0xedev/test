@@ -21,7 +21,7 @@ const calculateTimeLeft = (endTime: bigint) => {
   };
 };
 
-export function MarketTime({ endTime, className }: MarketTimeProps) {
+export default function MarketTime({ endTime, className }: MarketTimeProps) {
   const [timeLeft, setTimeLeft] = useState(calculateTimeLeft(endTime));
   const isEnded = new Date(Number(endTime) * 1000) < new Date();
 
@@ -39,11 +39,14 @@ export function MarketTime({ endTime, className }: MarketTimeProps) {
     return (
       <div
         className={cn(
-          "mb-2 w-fit px-2 py-1 rounded border text-xs bg-red-200 border-red-300 text-red-800",
+          "inline-flex items-center px-3 py-2 rounded-md font-medium text-sm bg-red-100 text-red-800 border border-red-200 shadow-sm",
           className
         )}
       >
-        Ended
+        <span className="flex items-center">
+          <span className="mr-1 w-2 h-2 bg-red-500 rounded-full"></span>
+          Ended
+        </span>
       </div>
     );
   }
@@ -51,15 +54,26 @@ export function MarketTime({ endTime, className }: MarketTimeProps) {
   return (
     <div
       className={cn(
-        "mb-2 w-fit px-2 py-1 rounded border text-xs border-gray-300 text-gray-800",
+        "rounded-md border border-gray-200 shadow-sm bg-white p-3 text-gray-800",
         className
       )}
     >
-      <div>Ends in:</div>
-      <div>{timeLeft.days}d</div>
-      <div>{timeLeft.hours}h</div>
-      <div>{timeLeft.minutes}m</div>
-      <div>{timeLeft.seconds}s</div>
+      <div className="text-sm font-medium text-gray-500 mb-2">Ends in:</div>
+      <div className="flex space-x-2">
+        <TimeUnit value={timeLeft.days} label="d" />
+        <TimeUnit value={timeLeft.hours} label="h" />
+        <TimeUnit value={timeLeft.minutes} label="m" />
+        <TimeUnit value={timeLeft.seconds} label="s" />
+      </div>
     </div>
   );
 }
+
+const TimeUnit = ({ value, label }: { value: number; label: string }) => (
+  <div className="flex flex-col items-center">
+    <div className="bg-gray-100 rounded-md px-3 py-1 min-w-8 text-center font-bold">
+      {value}
+    </div>
+    <div className="text-xs text-gray-500 mt-1">{label}</div>
+  </div>
+);
